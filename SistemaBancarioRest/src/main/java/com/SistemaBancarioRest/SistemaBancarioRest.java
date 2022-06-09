@@ -1,6 +1,8 @@
 package com.SistemaBancarioRest;
 
+import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.web.bind.annotation.PathVariable;
@@ -8,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.google.gson.Gson;
 
 @RestController
 public class SistemaBancarioRest {
@@ -29,8 +33,22 @@ public class SistemaBancarioRest {
 	
 	
 	@RequestMapping(value = "/api/account", method = RequestMethod.GET)
-	public void ritornaLista() {
-		
+	public void getAccount() {
+		String query = "SELECT * FROM Account";
+
+		DataHandler db = new DataHandler();
+
+		db.connect();
+		try {
+			List<HashMap<String, String>> results = db.query(query);
+			String json = new Gson().toJson(results);
+			
+			System.out.println(json);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 	}
 	
 	@RequestMapping(value = "/api/account", method = RequestMethod.POST)
