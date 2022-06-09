@@ -17,5 +17,6 @@ function richiestaAccountID(url, method, callback) {
 
 document.getElementById("accountButton").addEventListener("click", () => {
     let accountID = document.getElementById("accountID").value
+    
 });
 
