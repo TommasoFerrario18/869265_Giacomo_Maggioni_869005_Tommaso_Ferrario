@@ -36,13 +36,19 @@ public class SistemaBancarioRest {
 		return parseBody;
 	}
 
+	@RequestMapping(value = "/", method = RequestMethod.GET)
+	public String homepage() {
+		// Leggo da file
+		return "";
+	}
+
 	@RequestMapping(value = "/api/account", method = RequestMethod.GET)
 	public String getAccount() {
 		DataHandler db = new DataHandler();
 
 		db.connect();
 		try {
-			List<HashMap<String, String>> results = db.query("SELECT * FROM Account");
+			List<HashMap<String, String>> results = db.query("SELECT ID, Nome, Cognome FROM Account");
 			if (results != null)
 				return (String) new Gson().toJson(results);
 		} catch (SQLException e) {
@@ -99,8 +105,8 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.GET)
-	public void accountGet(@PathVariable String accountID) {
-
+	public String getAccountInfo(@PathVariable String accountID) {
+		return "";
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.POST)
