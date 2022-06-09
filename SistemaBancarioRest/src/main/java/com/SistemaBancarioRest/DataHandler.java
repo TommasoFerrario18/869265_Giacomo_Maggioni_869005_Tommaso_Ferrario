@@ -20,21 +20,26 @@ public class DataHandler {
 		}
 		return true;
 	}
-	
+
 	public void closeConnection() throws SQLException {
 		c.close();
 	}
-	
-	//Return una lista di hashmap rappresentante la risposta della query
+
+	// Return una lista di hashmap rappresentante la risposta della query
 	public List query(String statement) throws SQLException {
 		ResultSet result = c.createStatement().executeQuery(statement);
 		return resultSetToArrayList(result);
 	}
 
-	//Main per prova / esempio connessione
+	public int update(String statement) throws SQLException {
+		PreparedStatement insert = c.prepareStatement(statement);
+		return insert.executeUpdate();
+	}
+
+	// Main per prova / esempio connessione
 	public static void main(String[] args) {
 		DataHandler db = new DataHandler();
-		if(db.connect()) {
+		if (db.connect()) {
 			try {
 				System.out.println(db.query("select * from account"));
 				db.closeConnection();
@@ -42,10 +47,10 @@ public class DataHandler {
 				e.printStackTrace();
 			}
 		}
-		
+
 	}
 
-	//TODO modificare secondo ciò che ci serve, ora è una lista di hashmap
+	// TODO modificare secondo ciò che ci serve, ora è una lista di hashmap
 	private List resultSetToArrayList(ResultSet rs) throws SQLException {
 		ResultSetMetaData md = rs.getMetaData();
 		int columns = md.getColumnCount();
