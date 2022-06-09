@@ -1,6 +1,10 @@
 package com.SistemaBancarioRest;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -8,6 +12,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class SistemaBancarioRest {
 
+	private Map<String, String> bodyParser(String reqBody){
+		Map<String, String> parseBody = new HashMap<String, String>();
+		
+		String[] values = reqBody.split("&");
+		
+		for (int i = 0; i < values.length; ++i) {
+			String[] coppia = values[i].split("=");
+			if (coppia.length != 2)
+				continue;
+			else
+				parseBody.put(coppia[0], coppia[1]);
+		}
+		return parseBody;
+	}
+	
 	
 	@RequestMapping(value = "/api/account", method = RequestMethod.GET)
 	public void ritornaLista() {
@@ -15,7 +34,9 @@ public class SistemaBancarioRest {
 	}
 	
 	@RequestMapping(value = "/api/account", method = RequestMethod.POST)
-	public void creaAccount() {
+	public void creaAccount(@RequestBody String parametriAccount) {
+		Map<String, String> body = bodyParser(parametriAccount);
+		
 		
 	}
 	
