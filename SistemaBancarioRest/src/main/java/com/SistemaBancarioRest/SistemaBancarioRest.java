@@ -90,7 +90,7 @@ public class SistemaBancarioRest {
 		if (accountID != null && (!accountID.equalsIgnoreCase(""))) {
 			DataHandler db = new DataHandler();
 			db.connect();
-			String query = "DELETE FROM Account WHERE ID = '" + accountID + "' LIMIT 1";
+			String query = "DELETE FROM Account WHERE ID = '" + accountID + "'";
 			try {
 				if (db.update(query) != 0)
 					return new ResponseEntity<String>("Ok", HttpStatus.OK);
