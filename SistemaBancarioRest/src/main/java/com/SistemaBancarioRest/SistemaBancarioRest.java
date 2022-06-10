@@ -45,7 +45,6 @@ public class SistemaBancarioRest {
 	@RequestMapping(value = "/api/account", method = RequestMethod.GET)
 	public String getAccount() {
 		DataHandler db = new DataHandler();
-
 		db.connect();
 		try {
 			List<HashMap<String, String>> results = db.query("SELECT ID, Nome, Cognome FROM Account");
@@ -65,15 +64,18 @@ public class SistemaBancarioRest {
 		if (body != null && body.containsKey("name") && body.containsKey("surname")) {
 			DataHandler db = new DataHandler();
 			db.connect();
-			String query = "INSERT INTO Account(ID, Nome, Cognome) VALUES('" + creaID() + "', '" + body.get("name")
-					+ "', '" + body.get("surname") + "')";
+			String id = creaID();
+			id = (id.charAt(0) != '-') ? id : (String) id.substring(1, id.length());
+			String query = "INSERT INTO Account(ID, Nome, Cognome) VALUES('" + id + "', '" + body.get("name") + "', '"
+					+ body.get("surname") + "')";
 			try {
-				if (db.update(query) != 0)
-					return new ResponseEntity<String>("OK", HttpStatus.CREATED);
+				if (db.update(query) != 0) {
+					return new ResponseEntity<String>(id, HttpStatus.CREATED);
+				}
 				else
-					return new ResponseEntity<String>("Non inserito no eccezione", HttpStatus.OK);
+					return new ResponseEntity<String>("Failed", HttpStatus.OK);
 			} catch (SQLException e) {
-				return new ResponseEntity<String>("Non inserito eccezione", HttpStatus.OK);
+				return new ResponseEntity<String>("Failed", HttpStatus.OK);
 			}
 		}
 		return new ResponseEntity<String>("Failed", HttpStatus.BAD_REQUEST);
@@ -100,12 +102,29 @@ public class SistemaBancarioRest {
 				return new ResponseEntity<String>("Failed eccezione", HttpStatus.OK);
 			}
 		}
-		System.out.println(accountID);
 		return new ResponseEntity<String>("Failed", HttpStatus.BAD_REQUEST);
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.GET)
-	public String getAccountInfo(@PathVariable String accountID) {
+	public String getAccountInfo(@PathVariable String accountId) {
+		if (accountId != null && !accountId.equalsIgnoreCase("")) {
+			String query = "SELECT * FROM Account WHERE ID = \"" + accountId + "\"";
+			//String queryT = "SELECT * FROM transazione where "
+			System.out.println(query);
+			DataHandler db = new DataHandler();
+			db.connect();
+			List<HashMap<String, String>> res;
+			try {
+				res = db.query(query);
+				db.closeConnection();
+				if (res != null)
+					System.out.println((String) new Gson().toJson(res));
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+		}
 		return "";
 	}
 

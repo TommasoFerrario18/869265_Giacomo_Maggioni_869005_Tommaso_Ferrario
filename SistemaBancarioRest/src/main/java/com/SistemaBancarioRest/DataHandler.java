@@ -11,9 +11,7 @@ public class DataHandler {
 
 	public boolean connect() {
 		try {
-			String databasePath = SistemaBancarioRest.class.getClassLoader().getResource("DatabaseProgetto.db")
-					.getPath();
-			c = DriverManager.getConnection("jdbc:sqlite:" + databasePath);
+			c = DriverManager.getConnection("jdbc:sqlite:" + "src/main/resources/DatabaseProgetto.db");
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return false;
@@ -32,8 +30,7 @@ public class DataHandler {
 	}
 
 	public int update(String statement) throws SQLException {
-		PreparedStatement insert = c.prepareStatement(statement);
-		return insert.executeUpdate();
+		return c.createStatement().executeUpdate(statement);
 	}
 
 	// Main per prova / esempio connessione
