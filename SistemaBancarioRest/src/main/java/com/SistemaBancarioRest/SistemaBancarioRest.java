@@ -55,7 +55,7 @@ public class SistemaBancarioRest {
 
 	@RequestMapping(value = "/", method = RequestMethod.GET)
 	public String homepage() throws FileNotFoundException, IOException {
-		return HTMLtoString("src/main/resources/WebUI/HTML/index.html");
+		return HTMLtoString("src/main/resources/WebUI/index.html");
 	}
 
 	@RequestMapping(value = "/api/account", method = RequestMethod.GET)
