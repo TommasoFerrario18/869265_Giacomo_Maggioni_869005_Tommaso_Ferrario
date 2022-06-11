@@ -1,5 +1,10 @@
 package com.SistemaBancarioRest;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -36,11 +41,21 @@ public class SistemaBancarioRest {
 		}
 		return parseBody;
 	}
+	
+	private String HTMLtoString(String fileURL) throws FileNotFoundException, IOException {
+		StringBuilder resultStringBuilder = new StringBuilder();
+	    try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(fileURL)))) {
+	        String line;
+	        while ((line = br.readLine()) != null) {
+	            resultStringBuilder.append(line).append("\n");
+	        }
+	    }
+	    return resultStringBuilder.toString();
+	}
 
 	@RequestMapping(value = "/", method = RequestMethod.GET)
-	public String homepage() {
-		// Leggo da file
-		return "";
+	public String homepage() throws FileNotFoundException, IOException {
+		return HTMLtoString("src/main/resources/WebUI/HTML/index.html");
 	}
 
 	@RequestMapping(value = "/api/account", method = RequestMethod.GET)
