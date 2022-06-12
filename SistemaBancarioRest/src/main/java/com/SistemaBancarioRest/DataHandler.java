@@ -48,14 +48,14 @@ public class DataHandler {
 	}
 
 	// TODO modificare secondo ciò che ci serve, ora è una lista di hashmap
-	private List resultSetToArrayList(ResultSet rs) throws SQLException {
+	private List<HashMap<String, String>> resultSetToArrayList(ResultSet rs) throws SQLException {
 		ResultSetMetaData md = rs.getMetaData();
 		int columns = md.getColumnCount();
-		ArrayList list = new ArrayList(50);
+		ArrayList<HashMap<String, String>> list = new ArrayList<HashMap<String, String>>(50);
 		while (rs.next()) {
-			HashMap row = new HashMap(columns);
+			HashMap<String, String> row = new HashMap<String, String>(columns);
 			for (int i = 1; i <= columns; ++i) {
-				row.put(md.getColumnName(i), rs.getObject(i));
+				row.put(md.getColumnName(i), (String) rs.getObject(i));
 			}
 			list.add(row);
 		}
