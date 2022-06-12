@@ -55,7 +55,7 @@ public class DataHandler {
 		while (rs.next()) {
 			HashMap<String, String> row = new HashMap<String, String>(columns);
 			for (int i = 1; i <= columns; ++i) {
-				row.put(md.getColumnName(i), (String) rs.getObject(i));
+				row.put(md.getColumnName(i), rs.getObject(i).toString());
 			}
 			list.add(row);
 		}

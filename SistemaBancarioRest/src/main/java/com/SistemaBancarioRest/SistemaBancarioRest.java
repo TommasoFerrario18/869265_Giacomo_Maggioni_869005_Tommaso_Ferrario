@@ -68,7 +68,6 @@ public class SistemaBancarioRest {
 			if (results != null)
 				return (String) new Gson().toJson(results);
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
 			db.closeConnection();
@@ -159,13 +158,12 @@ public class SistemaBancarioRest {
 						+ " WHERE ID = '" + accountId + "'";
 			} else {
 				if ((saldo - Double.parseDouble(body.get("amount"))) > 0) {
-					query = "UPDATE Account SET Saldo = " + (saldo - Double.parseDouble(body.get("amount")))
+					query = "UPDATE Account SET Saldo = " + (saldo + Double.parseDouble(body.get("amount")))
 							+ " WHERE ID = '" + accountId + "'";
 				} else {
 					throw new InvalidBalanceException();
 				}
 			}
-
 			db.connect();
 			if (db.update(query) > 0) {
 				db.closeConnection();
@@ -247,10 +245,6 @@ public class SistemaBancarioRest {
 			List<HashMap<String, String>> res;
 			try {
 				res = db.query(query);
-				System.out.println(res.get(0).toString());
-				System.out.println(res.get(0).keySet().toString());
-				System.out.println(res.get(0).containsKey("Saldo"));
-				System.out.println(res.get(0).get("Saldo"));
 				if (res != null)
 					return Double.parseDouble((String) res.get(0).get("Saldo"));
 			} catch (SQLException e) {
@@ -297,7 +291,20 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/divert", method = RequestMethod.POST)
-	public void divertPost() {
-
+	public ResponseEntity<String> divertPost(@RequestBody String id) throws SQLException {
+		Map<String, String> body = bodyParser(id);
+		if (body != null && body.containsKey("id")) {
+			db.connect();
+			String query = "SELECT amount, mittente, destinatario FROM Transazione WHERE ID = '" + body.get("id") + "'";
+			List<HashMap<String, String>> res;
+			try {
+				res = db.query(query);
+				System.out.println(res.toString() + "Saldo = " + getSaldo(res.get(0).get("destinatario")));
+			} catch (SQLException e) {
+			} finally {
+				db.closeConnection();
+			}
+		}
+		return new ResponseEntity<String>("Manca ID transazione", HttpStatus.BAD_REQUEST);
 	}
 }
