@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -164,10 +166,15 @@ public class SistemaBancarioRest {
 					throw new InvalidBalanceException();
 				}
 			}
+			String uuid = UUID.randomUUID().toString();
+			String transazione = "INSERT INTO Transazione(ID, amount, dataOra, mittente, destinatario) VALUES (" + uuid
+					+ ", " + Double.parseDouble(body.get("amount")) + ", datetime('now', 'localtime'), " + accountId
+					+ ", " + accountId + ")";
 			db.connect();
-			if (db.update(query) > 0) {
+			if (db.update(query) > 0 && db.update(transazione) > 0) {
 				db.closeConnection();
-				return new ResponseEntity<String>(getSaldo(accountId) + "", HttpStatus.OK);
+				return new ResponseEntity<String>("Saldo: " + getSaldo(accountId) + " Transazione: " + uuid,
+						HttpStatus.OK);
 			} else {
 				db.closeConnection();
 				return new ResponseEntity<String>("Failed", HttpStatus.OK);
@@ -233,8 +240,24 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.HEAD)
-	public void accountHead(@PathVariable String accountId) {
+	public HttpEntity<String> accountHead(@PathVariable String accountId) throws SQLException {
+		if (accountId != null && !accountId.equalsIgnoreCase("")) {
+			String query = "SELECT Nome, Cognome FROM Account WHERE ID = '" + accountId + "'";
+			db.connect();
+			try {
+				List<HashMap<String, String>> res = db.query(query);
+				if (res != null) {
+					HttpHeaders header = new HttpHeaders();
+					header.add("X-Sistema-Bancario", res.get(0).get("Nome") + ";" + res.get(0).get("Cognome"));
+					return new HttpEntity<String>(header);
+				}
+			} catch (SQLException e) {
 
+			} finally {
+				db.closeConnection();
+			}
+		}
+		throw new InvalidAccountException();
 	}
 
 	private Double getSaldo(String accountID) throws SQLException {
