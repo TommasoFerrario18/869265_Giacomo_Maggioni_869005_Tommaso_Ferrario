@@ -167,11 +167,12 @@ public class SistemaBancarioRest {
 				}
 			}
 			String uuid = UUID.randomUUID().toString();
-			String transazione = "INSERT INTO Transazione(ID, amount, dataOra, mittente, destinatario) VALUES (" + uuid
-					+ ", " + Double.parseDouble(body.get("amount")) + ", datetime('now', 'localtime'), " + accountId
-					+ ", " + accountId + ")";
+			String transazione = "INSERT INTO Transazione(ID, amount, dataOra, mittente, destinatario) VALUES ('" + uuid
+					+ "', " + Double.parseDouble(body.get("amount")) + ", datetime('now', 'localtime'), '" + accountId
+					+ "', '" + accountId + "')";
 			db.connect();
 			if (db.update(query) > 0 && db.update(transazione) > 0) {
+				System.out.println("Eseguite");
 				db.closeConnection();
 				return new ResponseEntity<String>("Saldo: " + getSaldo(accountId) + " Transazione: " + uuid,
 						HttpStatus.OK);
@@ -322,6 +323,26 @@ public class SistemaBancarioRest {
 			List<HashMap<String, String>> res;
 			try {
 				res = db.query(query);
+				if ((getSaldo(res.get(0).get("destinatario")) - Double.parseDouble(res.get(0).get("amount"))) >= 0) {
+					String insert = "INSERT INTO Transazione (ID, amount, dataOra, mittente, destinatario) VALUES ("
+							+ UUID.randomUUID() + ", " + res.get(0).get("amount") + ", datetime('now', 'localtime'), "
+							+ res.get(0).get("destinatario") + ", " + res.get(0).get("mittente") + ")";
+
+					String updateSaldo = "UPDATE Account SET Saldo = "
+							+ (getSaldo(res.get(0).get("destinatario")) - Double.parseDouble(res.get(0).get("amount")))
+							+ " WHERE ID = '" + res.get(0).get("destinatario") + "'";
+					// Da fare in una transazione
+					db.connect();
+					if (db.update(insert) != 0)
+						if (db.update(updateSaldo) != 0)
+							return new ResponseEntity<String>("Ok", HttpStatus.OK);
+						else
+							return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
+					else
+						return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
+				} else {
+					// non la posso fare
+				}
 				System.out.println(res.toString() + "Saldo = " + getSaldo(res.get(0).get("destinatario")));
 			} catch (SQLException e) {
 			} finally {
