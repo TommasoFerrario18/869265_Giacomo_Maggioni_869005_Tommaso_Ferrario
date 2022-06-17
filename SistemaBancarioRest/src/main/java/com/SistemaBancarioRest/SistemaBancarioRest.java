@@ -147,27 +147,22 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.GET)
-	public String getAccountInfo(@PathVariable String accountId) throws SQLException {
+	public HttpEntity<String> getAccountInfo(@PathVariable String accountId) throws SQLException {
 		if (accountId != null && !accountId.equalsIgnoreCase("")) {
 			String query = "SELECT * FROM Account WHERE ID = '" + accountId + "'";
 			String queryT = "SELECT * FROM Transazione WHERE (mittente = '" + accountId + "' OR destinatario = '"
 					+ accountId + "') ORDER BY dataOra ASC";
-			db.connect();
-			List<HashMap<String, String>> res;
-			try {
-				res = db.query(query);
-				StringBuilder sb = new StringBuilder();
-				sb.append(new Gson().toJson(res));
-				sb.insert(sb.indexOf("}"), ",\"Transazioni\":" + new Gson().toJson(db.query(queryT)));
-				if (res != null)
-					return sb.toString();
-			} catch (SQLException e) {
-				db.closeConnection();
-			} finally {
-				db.closeConnection();
+			List<HashMap<String, String>> res = eseguiQuery(query);
+			StringBuilder sb = new StringBuilder();
+			sb.append(new Gson().toJson(res));
+			sb.insert(sb.indexOf("}"), ",\"Transazioni\":" + new Gson().toJson(db.query(queryT)));
+			if (sb != null) {
+				HttpHeaders header = new HttpHeaders();
+				header.add("X-Sistema-Bancario", res.get(0).get("Nome") + ";" + res.get(0).get("Cognome"));
+				return new HttpEntity<String>(sb.toString(), header);
 			}
 		}
-		return "";
+		throw new InvalidAccountException();
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.POST)
