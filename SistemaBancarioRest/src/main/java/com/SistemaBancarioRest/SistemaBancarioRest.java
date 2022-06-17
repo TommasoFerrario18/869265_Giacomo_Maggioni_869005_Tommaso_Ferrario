@@ -104,7 +104,7 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/account", method = RequestMethod.GET)
-	public String getAccount() throws SQLException {
+	public String getAccount() {
 		List<HashMap<String, String>> results = eseguiQuery("SELECT ID, Nome, Cognome FROM Account");
 		if (results != null)
 			return (String) new Gson().toJson(results);
@@ -113,7 +113,7 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/account", method = RequestMethod.POST)
-	public ResponseEntity<String> creaAccount(@RequestBody String parametriAccount) throws SQLException {
+	public ResponseEntity<String> creaAccount(@RequestBody String parametriAccount) {
 		Map<String, String> body = bodyParser(parametriAccount);
 		if (body != null && body.containsKey("name") && body.containsKey("surname")) {
 			String id = creaID();
@@ -135,7 +135,7 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/account", method = RequestMethod.DELETE)
-	public ResponseEntity<String> eliminaAccount(@RequestParam String accountID) throws SQLException {
+	public ResponseEntity<String> eliminaAccount(@RequestParam String accountID) {
 		if (accountID != null && (!accountID.equalsIgnoreCase(""))) {
 			String query = "DELETE FROM Account WHERE ID = '" + accountID + "'";
 			if (eseguiUpdate(query) != 0)
@@ -147,7 +147,7 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.GET)
-	public HttpEntity<String> getAccountInfo(@PathVariable String accountId) throws SQLException {
+	public HttpEntity<String> getAccountInfo(@PathVariable String accountId) {
 		if (accountId != null && !accountId.equalsIgnoreCase("")) {
 			String query = "SELECT * FROM Account WHERE ID = '" + accountId + "'";
 			String queryT = "SELECT * FROM Transazione WHERE (mittente = '" + accountId + "' OR destinatario = '"
@@ -155,7 +155,7 @@ public class SistemaBancarioRest {
 			List<HashMap<String, String>> res = eseguiQuery(query);
 			StringBuilder sb = new StringBuilder();
 			sb.append(new Gson().toJson(res)).insert(sb.indexOf("}"),
-					",\"Transazioni\":" + new Gson().toJson(db.query(queryT)));
+					",\"Transazioni\":" + new Gson().toJson(eseguiQuery(queryT)));
 			if (sb != null) {
 				HttpHeaders header = new HttpHeaders();
 				header.add("X-Sistema-Bancario", res.get(0).get("Nome") + ";" + res.get(0).get("Cognome"));
@@ -228,7 +228,7 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.HEAD)
-	public HttpEntity<String> accountHead(@PathVariable String accountId) throws SQLException {
+	public HttpEntity<String> accountHead(@PathVariable String accountId) {
 		if (accountId != null && !accountId.equalsIgnoreCase("")) {
 			String query = "SELECT Nome, Cognome FROM Account WHERE ID = '" + accountId + "'";
 			List<HashMap<String, String>> res = eseguiQuery(query);
