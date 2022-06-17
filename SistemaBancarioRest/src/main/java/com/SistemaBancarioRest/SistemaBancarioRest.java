@@ -136,9 +136,12 @@ public class SistemaBancarioRest {
 			List<HashMap<String, String>> res;
 			try {
 				res = db.query(query);
-				res.get(0).put("Transazioni", new Gson().toJson(db.query(queryT)));
+				System.out.println("\"Transazioni\":");
+				StringBuilder sb = new StringBuilder();
+				sb.append(new Gson().toJson(res));
+				sb.insert(sb.indexOf("}"), ",\"Transazioni\":" + new Gson().toJson(db.query(queryT)));
 				if (res != null)
-					return new Gson().toJson(res);
+					return sb.toString();
 			} catch (SQLException e) {
 				db.closeConnection();
 			} finally {
