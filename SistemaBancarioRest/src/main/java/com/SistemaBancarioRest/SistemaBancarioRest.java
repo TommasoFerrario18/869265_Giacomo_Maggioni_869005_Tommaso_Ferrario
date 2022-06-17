@@ -68,7 +68,7 @@ public class SistemaBancarioRest {
 			try {
 				db.closeConnection();
 			} catch (SQLException e) {
-				System.out.println("Chiusura database");
+				System.out.println("Chiusura database fallita");
 			}
 		}
 	}
@@ -154,8 +154,8 @@ public class SistemaBancarioRest {
 					+ accountId + "') ORDER BY dataOra ASC";
 			List<HashMap<String, String>> res = eseguiQuery(query);
 			StringBuilder sb = new StringBuilder();
-			sb.append(new Gson().toJson(res));
-			sb.insert(sb.indexOf("}"), ",\"Transazioni\":" + new Gson().toJson(db.query(queryT)));
+			sb.append(new Gson().toJson(res)).insert(sb.indexOf("}"),
+					",\"Transazioni\":" + new Gson().toJson(db.query(queryT)));
 			if (sb != null) {
 				HttpHeaders header = new HttpHeaders();
 				header.add("X-Sistema-Bancario", res.get(0).get("Nome") + ";" + res.get(0).get("Cognome"));
@@ -166,8 +166,7 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.POST)
-	public ResponseEntity<String> accountPost(@PathVariable String accountId, @RequestBody String parametriAccount)
-			throws SQLException {
+	public ResponseEntity<String> accountPost(@PathVariable String accountId, @RequestBody String parametriAccount) {
 		Map<String, String> body = bodyParser(parametriAccount);
 		if (body != null && body.containsKey("amount") && accountId != null && !accountId.equalsIgnoreCase("")) {
 			String query = "";
@@ -176,83 +175,54 @@ public class SistemaBancarioRest {
 				query = "UPDATE Account SET Saldo = " + (saldo + Double.parseDouble(body.get("amount")))
 						+ " WHERE ID = '" + accountId + "'";
 			} else {
-				if ((saldo - Double.parseDouble(body.get("amount"))) > 0) {
+				if ((saldo - Double.parseDouble(body.get("amount"))) > 0)
 					query = "UPDATE Account SET Saldo = " + (saldo + Double.parseDouble(body.get("amount")))
 							+ " WHERE ID = '" + accountId + "'";
-				} else {
+				else
 					throw new InvalidBalanceException();
-				}
 			}
 			String uuid = UUID.randomUUID().toString();
 			String transazione = "INSERT INTO Transazione(ID, amount, dataOra, mittente, destinatario) VALUES ('" + uuid
 					+ "', " + Double.parseDouble(body.get("amount")) + ", datetime('now', 'localtime'), '" + accountId
 					+ "', '" + accountId + "')";
-			db.connect();
-			if (db.update(query) > 0 && db.update(transazione) > 0) {
-				System.out.println("Eseguite");
-				db.closeConnection();
+			if (eseguiUpdate(query) > 0 && eseguiUpdate(transazione) > 0)
 				return new ResponseEntity<String>("Saldo: " + getSaldo(accountId) + " Transazione: " + uuid,
 						HttpStatus.OK);
-			} else {
-				db.closeConnection();
+			else
 				return new ResponseEntity<String>("Failed", HttpStatus.OK);
-			}
-
 		}
 		return new ResponseEntity<String>("Failed", HttpStatus.BAD_REQUEST);
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.PUT)
-	public ResponseEntity<String> accountPut(@PathVariable String accountId, @RequestBody String parametriAccount)
-			throws SQLException {
+	public ResponseEntity<String> accountPut(@PathVariable String accountId, @RequestBody String parametriAccount) {
 		Map<String, String> body = bodyParser(parametriAccount);
 		if (accountId != null && !accountId.equalsIgnoreCase("") && body.containsKey("name")
 				&& body.containsKey("surname")) {
 			String query = "UPDATE Account SET Nome = '" + body.get("name") + "', Cognome = '" + body.get("surname")
 					+ "' WHERE ID = '" + accountId + "'";
-			db.connect();
-			try {
-				if (db.update(query) > 0) {
-					return new ResponseEntity<String>("OK", HttpStatus.OK);
-				} else {
-					return new ResponseEntity<String>("Failed", HttpStatus.OK);
-				}
-			} catch (SQLException e) {
+			if (eseguiUpdate(query) > 0)
+				return new ResponseEntity<String>("OK", HttpStatus.OK);
+			else
 				return new ResponseEntity<String>("Failed", HttpStatus.OK);
-			} finally {
-				db.closeConnection();
-			}
 		}
-		return new ResponseEntity<String>("Failed", HttpStatus.OK);
+		return new ResponseEntity<String>("Failed", HttpStatus.BAD_REQUEST);
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.PATCH)
-	public ResponseEntity<String> accountPatch(@PathVariable String accountId, @RequestBody String parametriAccount)
-			throws SQLException {
+	public ResponseEntity<String> accountPatch(@PathVariable String accountId, @RequestBody String parametriAccount) {
 		Map<String, String> body = bodyParser(parametriAccount);
 		if (accountId != null && !accountId.equalsIgnoreCase("")
 				&& (body.containsKey("name") || body.containsKey("surname"))
 				&& ((body.get("name") != null && !body.get("name").equalsIgnoreCase(""))
 						|| (body.get("surname") != null && !body.get("surname").equalsIgnoreCase("")))) {
-			String query = "";
-			if (body.containsKey("name")) {
-				query = "UPDATE Account SET Nome = '" + body.get("name") + "' WHERE ID = '" + accountId + "'";
-			} else {
-				query = "UPDATE Account SET Cognome = '" + body.get("surname") + "' WHERE ID = '" + accountId + "'";
-			}
-
-			db.connect();
-			try {
-				if (db.update(query) > 0) {
-					return new ResponseEntity<String>("OK", HttpStatus.OK);
-				} else {
-					return new ResponseEntity<String>("Failed", HttpStatus.OK);
-				}
-			} catch (SQLException e) {
+			String query = (body.containsKey("name"))
+					? "UPDATE Account SET Nome = '" + body.get("name") + "' WHERE ID = '" + accountId + "'"
+					: "UPDATE Account SET Cognome = '" + body.get("surname") + "' WHERE ID = '" + accountId + "'";
+			if (eseguiUpdate(query) > 0)
+				return new ResponseEntity<String>("OK", HttpStatus.OK);
+			else
 				return new ResponseEntity<String>("Failed", HttpStatus.OK);
-			} finally {
-				db.closeConnection();
-			}
 		}
 		return new ResponseEntity<String>("Failed", HttpStatus.BAD_REQUEST);
 	}
@@ -261,110 +231,71 @@ public class SistemaBancarioRest {
 	public HttpEntity<String> accountHead(@PathVariable String accountId) throws SQLException {
 		if (accountId != null && !accountId.equalsIgnoreCase("")) {
 			String query = "SELECT Nome, Cognome FROM Account WHERE ID = '" + accountId + "'";
-			db.connect();
-			try {
-				List<HashMap<String, String>> res = db.query(query);
-				if (res != null) {
-					HttpHeaders header = new HttpHeaders();
-					header.add("X-Sistema-Bancario", res.get(0).get("Nome") + ";" + res.get(0).get("Cognome"));
-					return new HttpEntity<String>(header);
-				}
-			} catch (SQLException e) {
-
-			} finally {
-				db.closeConnection();
+			List<HashMap<String, String>> res = eseguiQuery(query);
+			if (res != null) {
+				HttpHeaders header = new HttpHeaders();
+				header.add("X-Sistema-Bancario", res.get(0).get("Nome") + ";" + res.get(0).get("Cognome"));
+				return new HttpEntity<String>(header);
 			}
 		}
 		throw new InvalidAccountException();
 	}
 
-	private Double getSaldo(String accountID) throws SQLException {
+	private Double getSaldo(String accountID) {
 		if (accountID != null && accountID.length() == 20) {
 			String query = "SELECT Saldo FROM Account WHERE ID = '" + accountID + "'";
-			DataHandler db = new DataHandler();
-			db.connect();
-			List<HashMap<String, String>> res;
-			try {
-				res = db.query(query);
-				if (res != null)
-					return Double.parseDouble((String) res.get(0).get("Saldo"));
-			} catch (SQLException e) {
-				e.printStackTrace();
-			} finally {
-				db.closeConnection();
-			}
+			List<HashMap<String, String>> res = eseguiQuery(query);
+			if (res != null)
+				return Double.parseDouble((String) res.get(0).get("Saldo"));
 		}
 		return 0.0;
 	}
 
 	@RequestMapping(value = "/api/transfer", method = RequestMethod.POST)
-	public ResponseEntity<String> transferPost(@RequestBody String paramtransazione) throws SQLException {
+	public ResponseEntity<String> transferPost(@RequestBody String paramtransazione) {
 		Map<String, String> body = bodyParser(paramtransazione);
 		if (body != null && body.containsKey("from") && body.containsKey("to") && body.containsKey("amount")) {
-			try {
-				double saldoPrima = getSaldo(body.get("from"));
-				double saldoDopo = saldoPrima - Double.parseDouble(body.get("amount"));
-				if (saldoDopo >= 0) {
-					String insert = "INSERT INTO Transazione (ID, amount, dataOra, mittente, destinatario) VALUES ("
-							+ UUID.randomUUID() + ", " + body.get("amount") + ", datetime('now', 'localtime'), "
-							+ body.get("from") + ", " + body.get("to") + ")";
-					String updateSaldo = "UPDATE Account SET Saldo = " + saldoDopo + " WHERE ID = '" + body.get("from")
-							+ "'";
-					// Da fare in una transazione
-					db.connect();
-					if (db.update(insert) != 0)
-						if (db.update(updateSaldo) != 0)
-							return new ResponseEntity<String>("Ok", HttpStatus.OK);
-						else
-							return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
-					else
-						return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
-				} else {
-					throw new InvalidBalanceException();
-				}
-			} catch (SQLException e) {
-
-			} finally {
-				db.closeConnection();
-			}
+			double saldoPrima = getSaldo(body.get("from"));
+			double saldoDopo = saldoPrima - Double.parseDouble(body.get("amount"));
+			if (saldoDopo >= 0) {
+				String insert = "INSERT INTO Transazione (ID, amount, dataOra, mittente, destinatario) VALUES ("
+						+ UUID.randomUUID() + ", " + body.get("amount") + ", datetime('now', 'localtime'), "
+						+ body.get("from") + ", " + body.get("to") + ")";
+				String updateSaldo = "UPDATE Account SET Saldo = " + saldoDopo + " WHERE ID = '" + body.get("from")
+						+ "'";
+				// Da fare in una transazione
+				if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldo) != 0)
+					return new ResponseEntity<String>("Ok", HttpStatus.OK);
+				else
+					return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
+			} else
+				throw new InvalidBalanceException();
 		}
 		return new ResponseEntity<String>("Transazione non valida", HttpStatus.BAD_REQUEST);
 	}
 
 	@RequestMapping(value = "/api/divert", method = RequestMethod.POST)
-	public ResponseEntity<String> divertPost(@RequestBody String id) throws SQLException {
+	public ResponseEntity<String> divertPost(@RequestBody String id) {
 		Map<String, String> body = bodyParser(id);
 		if (body != null && body.containsKey("id")) {
-			db.connect();
 			String query = "SELECT amount, mittente, destinatario FROM Transazione WHERE ID = '" + body.get("id") + "'";
-			List<HashMap<String, String>> res;
-			try {
-				res = db.query(query);
-				if ((getSaldo(res.get(0).get("destinatario")) - Double.parseDouble(res.get(0).get("amount"))) >= 0) {
-					String insert = "INSERT INTO Transazione (ID, amount, dataOra, mittente, destinatario) VALUES ("
-							+ UUID.randomUUID() + ", " + res.get(0).get("amount") + ", datetime('now', 'localtime'), "
-							+ res.get(0).get("destinatario") + ", " + res.get(0).get("mittente") + ")";
+			List<HashMap<String, String>> res = eseguiQuery(query);
+			if ((getSaldo(res.get(0).get("destinatario")) - Double.parseDouble(res.get(0).get("amount"))) >= 0) {
+				String insert = "INSERT INTO Transazione (ID, amount, dataOra, mittente, destinatario) VALUES ("
+						+ UUID.randomUUID() + ", " + res.get(0).get("amount") + ", datetime('now', 'localtime'), "
+						+ res.get(0).get("destinatario") + ", " + res.get(0).get("mittente") + ")";
 
-					String updateSaldo = "UPDATE Account SET Saldo = "
-							+ (getSaldo(res.get(0).get("destinatario")) - Double.parseDouble(res.get(0).get("amount")))
-							+ " WHERE ID = '" + res.get(0).get("destinatario") + "'";
-					// Da fare in una transazione
-					db.connect();
-					if (db.update(insert) != 0)
-						if (db.update(updateSaldo) != 0)
-							return new ResponseEntity<String>("Ok", HttpStatus.OK);
-						else
-							return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
-					else
-						return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
-				} else {
-					// non la posso fare
-				}
-				System.out.println(res.toString() + "Saldo = " + getSaldo(res.get(0).get("destinatario")));
-			} catch (SQLException e) {
-			} finally {
-				db.closeConnection();
-			}
+				String updateSaldo = "UPDATE Account SET Saldo = "
+						+ (getSaldo(res.get(0).get("destinatario")) - Double.parseDouble(res.get(0).get("amount")))
+						+ " WHERE ID = '" + res.get(0).get("destinatario") + "'";
+				// Da fare in una transazione
+				if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldo) != 0)
+					return new ResponseEntity<String>("Ok", HttpStatus.OK);
+				else
+					return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
+
+			} else
+				throw new InvalidBalanceException();
 		}
 		return new ResponseEntity<String>("Manca ID transazione", HttpStatus.BAD_REQUEST);
 	}
