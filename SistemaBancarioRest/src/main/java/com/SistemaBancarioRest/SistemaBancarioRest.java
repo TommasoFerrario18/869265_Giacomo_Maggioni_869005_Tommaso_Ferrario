@@ -151,7 +151,7 @@ public class SistemaBancarioRest {
 		if (accountId != null && !accountId.equalsIgnoreCase("")) {
 			String query = "SELECT * FROM Account WHERE ID = '" + accountId + "'";
 			String queryT = "SELECT * FROM Transazione WHERE (mittente = '" + accountId + "' OR destinatario = '"
-					+ accountId + "') ORDER BY dataOra ASC";
+					+ accountId + "') ORDER BY dataOra DESC";
 			List<HashMap<String, String>> res = eseguiQuery(query);
 			StringBuilder sb = new StringBuilder();
 			sb.append(new Gson().toJson(res)).insert(sb.indexOf("}"),
