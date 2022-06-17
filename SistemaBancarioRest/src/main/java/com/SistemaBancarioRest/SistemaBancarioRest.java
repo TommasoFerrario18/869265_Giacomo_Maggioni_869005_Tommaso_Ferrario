@@ -57,6 +57,47 @@ public class SistemaBancarioRest {
 		return resultStringBuilder.toString();
 	}
 
+	private List<HashMap<String, String>> eseguiQuery(String query) {
+		if (query != null && !query.equalsIgnoreCase(""))
+			db.connect();
+		try {
+			return db.query(query);
+		} catch (SQLException e) {
+			return null;
+		} finally {
+			try {
+				db.closeConnection();
+			} catch (SQLException e) {
+				System.out.println("Chiusura database");
+			}
+		}
+	}
+
+	private int eseguiUpdate(String query) {
+		if (query != null && !query.equalsIgnoreCase("")) {
+			db.connect();
+			try {
+				return db.update(query);
+			} catch (SQLException e) {
+				return 0;
+			} finally {
+				try {
+					db.closeConnection();
+				} catch (SQLException e) {
+					System.out.println("Database non chiuso");
+				}
+			}
+		} else
+			return 0;
+	}
+
+	private String controlloStringa(String s) {
+		if (s != null && !s.equalsIgnoreCase("")) {
+			return s.trim();
+		}
+		return "";
+	}
+
 	@RequestMapping(value = "/", method = RequestMethod.GET)
 	public String homepage() throws FileNotFoundException, IOException {
 		return HTMLtoString("src/main/resources/WebUI/index.html");
@@ -64,39 +105,25 @@ public class SistemaBancarioRest {
 
 	@RequestMapping(value = "/api/account", method = RequestMethod.GET)
 	public String getAccount() throws SQLException {
-		db.connect();
-		try {
-			List<HashMap<String, String>> results = db.query("SELECT ID, Nome, Cognome FROM Account");
-			if (results != null)
-				return (String) new Gson().toJson(results);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			db.closeConnection();
-		}
-		return "";
-
+		List<HashMap<String, String>> results = eseguiQuery("SELECT ID, Nome, Cognome FROM Account");
+		if (results != null)
+			return (String) new Gson().toJson(results);
+		else
+			return "";
 	}
 
 	@RequestMapping(value = "/api/account", method = RequestMethod.POST)
 	public ResponseEntity<String> creaAccount(@RequestBody String parametriAccount) throws SQLException {
 		Map<String, String> body = bodyParser(parametriAccount);
 		if (body != null && body.containsKey("name") && body.containsKey("surname")) {
-			db.connect();
 			String id = creaID();
 			id = (id.charAt(0) != '-') ? id : (String) id.substring(1, id.length());
 			String query = "INSERT INTO Account(ID, Nome, Cognome, Saldo) VALUES('" + id + "', '" + body.get("name")
 					+ "', '" + body.get("surname") + "', 0.0)";
-			try {
-				if (db.update(query) != 0) {
-					return new ResponseEntity<String>(id, HttpStatus.CREATED);
-				} else
-					return new ResponseEntity<String>("Failed", HttpStatus.OK);
-			} catch (SQLException e) {
+			if (eseguiUpdate(query) != 0) {
+				return new ResponseEntity<String>(id, HttpStatus.CREATED);
+			} else
 				return new ResponseEntity<String>("Failed", HttpStatus.OK);
-			} finally {
-				db.closeConnection();
-			}
 		}
 		return new ResponseEntity<String>("Failed", HttpStatus.BAD_REQUEST);
 	}
@@ -110,18 +137,11 @@ public class SistemaBancarioRest {
 	@RequestMapping(value = "/api/account", method = RequestMethod.DELETE)
 	public ResponseEntity<String> eliminaAccount(@RequestParam String accountID) throws SQLException {
 		if (accountID != null && (!accountID.equalsIgnoreCase(""))) {
-			db.connect();
 			String query = "DELETE FROM Account WHERE ID = '" + accountID + "'";
-			try {
-				if (db.update(query) != 0)
-					return new ResponseEntity<String>("Ok", HttpStatus.OK);
-				else
-					return new ResponseEntity<String>("Non cancellato no eccezione", HttpStatus.OK);
-			} catch (SQLException e) {
-				return new ResponseEntity<String>("Failed eccezione", HttpStatus.OK);
-			} finally {
-				db.closeConnection();
-			}
+			if (eseguiUpdate(query) != 0)
+				return new ResponseEntity<String>("Ok", HttpStatus.OK);
+			else
+				return new ResponseEntity<String>("Non cancellato no eccezione", HttpStatus.OK);
 		}
 		return new ResponseEntity<String>("Failed", HttpStatus.BAD_REQUEST);
 	}
@@ -136,7 +156,6 @@ public class SistemaBancarioRest {
 			List<HashMap<String, String>> res;
 			try {
 				res = db.query(query);
-				System.out.println("\"Transazioni\":");
 				StringBuilder sb = new StringBuilder();
 				sb.append(new Gson().toJson(res));
 				sb.insert(sb.indexOf("}"), ",\"Transazioni\":" + new Gson().toJson(db.query(queryT)));
