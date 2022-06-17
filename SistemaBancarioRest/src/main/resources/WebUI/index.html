@@ -17,9 +17,9 @@
 </head>
 
 <body>
-    <div class="container">
+    <div class="container" style="margin-top:24px;">
         <div id="input">
-            <div class="card" style="width: 35rem;">
+            <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Account ID</h5>
                     <input type="text" class="form-control" id="accountID">
@@ -28,24 +28,99 @@
                 </div>
             </div>
         </div>
-        <div id="output" style="display: none;">
-            <p>Prova div nascosta</p>
-        </div>
-    </div>
-    <script>
-        document.getElementById("accountButton").addEventListener("click", () => {
-            let accountID = document.getElementById("accountID").value;
+        <div id="output" style="margin-top: 24px;">
+            <div id="tableTitle">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">ID</th>
+                            <th scope="col">Nome</th>
+                            <th scope="col">Cognome</th>
+                            <th scope="col">Saldo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td id="td_id"></td>
+                            <td id="td_nome"></td>
+                            <td id="td_cognome"></td>
+                            <td id="td_saldo"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <hr>
+            <div>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">Identificativo</th>
+                            <th scope="col">Data</th>
+                            <th scope="col">Importo</th>
+                            <th scope="col">Mittente</th>
+                            <th scope="col">Destinatario</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+            <script>
 
-            let xhttp = new XMLHttpRequest()
-            xhttp.onreadystatechange = () => {
-                if (xhttp.readyState == 4 && xhttp.status == 200) {
-                    var obj = JSON.parse(xhttp.responseText);
+                showTransactionDiv(false);
+
+                document.getElementById("accountButton").addEventListener("click", () => {
+                    let accountID = document.getElementById("accountID").value;
+
+                    let xhttp = new XMLHttpRequest()
+                    xhttp.onreadystatechange = () => {
+                        if (xhttp.readyState == 4 && xhttp.status == 200) {
+                            var obj = JSON.parse(xhttp.responseText);
+                            createTransactionTable(obj);
+                        }
+                    }
+                    xhttp.open("GET", "http://localhost:8080/api/account/" + accountID)
+                    xhttp.send()
+                });
+
+                function showTransactionDiv(bool) {
+                    if (bool === true)
+                        document.getElementById("output").style.visibility = "visible";
+                    else
+                        document.getElementById("output").style.visibility = "hidden";
                 }
-            }
-            xhttp.open("GET", "http://localhost:8080/api/account/" + accountID)
-            xhttp.send()
-        });
-    </script>
+
+                function createTransactionTable(account) {
+                    var id = account[0].ID;
+                    var nome = account[0].Nome;
+                    var cognome = account[0].Cognome;
+                    var saldo = account[0].Saldo;
+                    var transazioni = account[0].Transazioni;
+                    console.log(account[0]);
+
+                    document.getElementById("td_id").innerHTML = id;
+                    document.getElementById("td_nome").innerHTML = nome;
+                    document.getElementById("td_cognome").innerHTML = cognome;
+                    document.getElementById("td_saldo").innerHTML = saldo;
+
+                    var tabella = "";
+                    for (i = 0; i < transazioni.length; i++) {
+                        console.log(transazioni[i]);
+                        if (i === 0) {
+                            tabella += '<tr class="table-primary">';
+                        } else {
+                            tabella += '<tr>';
+                        }
+                        tabella += '<td>' + transazioni[i].identificativo + '</td>';
+                        tabella += '<td>' + transazioni[i].data + '</td>';
+                        tabella += '<td>' + transazioni[i].importo + '</td>';
+                        tabella += '<td>' + transazioni[i].mittente + '</td>';
+                        tabella += '<td>' + transazioni[i].destinatario + '</td>';
+                        tabella += '</tr>';
+                    }
+                    document.getElementById("tbody").innerHTML = tabella;
+                    showTransactionDiv(true);
+                }
+            </script>
 </body>
 
 </html>
