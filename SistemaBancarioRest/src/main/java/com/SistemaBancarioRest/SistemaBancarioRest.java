@@ -149,7 +149,7 @@ public class SistemaBancarioRest {
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.GET)
 	public HttpEntity<String> getAccountInfo(@PathVariable String accountId) {
 		if (accountId != null && !accountId.equalsIgnoreCase("")) {
-			String query = "SELECT * FROM Account WHERE ID = '" + accountId + "'";
+			String query = "SELECT Nome, Cognome, Saldo FROM Account WHERE ID = '" + accountId + "'";
 			String queryT = "SELECT * FROM Transazione WHERE (mittente = '" + accountId + "' OR destinatario = '"
 					+ accountId + "') ORDER BY dataOra DESC";
 			List<HashMap<String, String>> res = eseguiQuery(query);
@@ -255,21 +255,26 @@ public class SistemaBancarioRest {
 	public ResponseEntity<String> transferPost(@RequestBody String paramtransazione) {
 		Map<String, String> body = bodyParser(paramtransazione);
 		if (body != null && body.containsKey("from") && body.containsKey("to") && body.containsKey("amount")) {
-			double saldoPrima = getSaldo(body.get("from"));
-			double saldoDopo = saldoPrima - Double.parseDouble(body.get("amount"));
-			if (saldoDopo >= 0) {
-				String insert = "INSERT INTO Transazione (ID, amount, dataOra, mittente, destinatario) VALUES ("
-						+ UUID.randomUUID() + ", " + body.get("amount") + ", datetime('now', 'localtime'), "
-						+ body.get("from") + ", " + body.get("to") + ")";
-				String updateSaldo = "UPDATE Account SET Saldo = " + saldoDopo + " WHERE ID = '" + body.get("from")
-						+ "'";
-				// Da fare in una transazione
-				if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldo) != 0)
-					return new ResponseEntity<String>("Ok", HttpStatus.OK);
-				else
-					return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
-			} else
-				throw new InvalidBalanceException();
+			if (Double.parseDouble(body.get("amount")) < 0) {
+				double saldoPrima = getSaldo(body.get("from"));
+				double saldoDopo = saldoPrima - Double.parseDouble(body.get("amount"));
+				if (saldoDopo >= 0) {
+					String insert = "INSERT INTO Transazione (ID, amount, dataOra, mittente, destinatario) VALUES ('"
+							+ UUID.randomUUID() + "', '" + body.get("amount") + "', datetime('now', 'localtime'), '"
+							+ body.get("from") + "', '" + body.get("to") + "')";
+					String updateSaldoM = "UPDATE Account SET Saldo = " + saldoDopo + " WHERE ID = '" + body.get("from")
+							+ "'";
+					String updateSaldoD = "UPDATE Account SET Saldo = "
+							+ (getSaldo(body.get("to")) + Double.parseDouble(body.get("amount"))) + " WHERE ID = '"
+							+ body.get("to") + "'";
+					// Da fare in una transazione
+					if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoM) != 0 && eseguiUpdate(updateSaldoD) != 0)
+						return new ResponseEntity<String>("Ok", HttpStatus.OK);
+					else
+						return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
+				} else
+					throw new InvalidBalanceException();
+			}
 		}
 		return new ResponseEntity<String>("Transazione non valida", HttpStatus.BAD_REQUEST);
 	}
@@ -281,15 +286,18 @@ public class SistemaBancarioRest {
 			String query = "SELECT amount, mittente, destinatario FROM Transazione WHERE ID = '" + body.get("id") + "'";
 			List<HashMap<String, String>> res = eseguiQuery(query);
 			if ((getSaldo(res.get(0).get("destinatario")) - Double.parseDouble(res.get(0).get("amount"))) >= 0) {
-				String insert = "INSERT INTO Transazione (ID, amount, dataOra, mittente, destinatario) VALUES ("
-						+ UUID.randomUUID() + ", " + res.get(0).get("amount") + ", datetime('now', 'localtime'), "
-						+ res.get(0).get("destinatario") + ", " + res.get(0).get("mittente") + ")";
+				String insert = "INSERT INTO Transazione (ID, amount, dataOra, mittente, destinatario) VALUES ('"
+						+ UUID.randomUUID() + "', " + res.get(0).get("amount") + ", datetime('now', 'localtime'), '"
+						+ res.get(0).get("destinatario") + "', '" + res.get(0).get("mittente") + "')";
 
-				String updateSaldo = "UPDATE Account SET Saldo = "
+				String updateSaldoD = "UPDATE Account SET Saldo = "
 						+ (getSaldo(res.get(0).get("destinatario")) - Double.parseDouble(res.get(0).get("amount")))
 						+ " WHERE ID = '" + res.get(0).get("destinatario") + "'";
+				String updateSaldoM = "UPDATE Account SET Saldo = "
+						+ (getSaldo(res.get(0).get("mittente")) + Double.parseDouble(res.get(0).get("amount")))
+						+ " WHERE ID = '" + res.get(0).get("mittente") + "'";
 				// Da fare in una transazione
-				if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldo) != 0)
+				if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoD) != 0 && eseguiUpdate(updateSaldoM) != 0)
 					return new ResponseEntity<String>("Ok", HttpStatus.OK);
 				else
 					return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
