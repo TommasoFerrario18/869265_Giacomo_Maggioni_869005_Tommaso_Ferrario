@@ -102,6 +102,11 @@ public class SistemaBancarioRest {
 	public String homepage() throws FileNotFoundException, IOException {
 		return HTMLtoString("src/main/resources/WebUI/index.html");
 	}
+	
+	@RequestMapping(value = "/transfer", method = RequestMethod.GET)
+	public String transfer() throws FileNotFoundException, IOException {
+		return HTMLtoString("src/main/resources/WebUI/transfer.html");
+	}
 
 	@RequestMapping(value = "/api/account", method = RequestMethod.GET)
 	public String getAccount() {
@@ -255,7 +260,7 @@ public class SistemaBancarioRest {
 	public ResponseEntity<String> transferPost(@RequestBody String paramtransazione) {
 		Map<String, String> body = bodyParser(paramtransazione);
 		if (body != null && body.containsKey("from") && body.containsKey("to") && body.containsKey("amount")) {
-			if (Double.parseDouble(body.get("amount")) < 0) {
+			if (Double.parseDouble(body.get("amount")) >= 0) {
 				double saldoPrima = getSaldo(body.get("from"));
 				double saldoDopo = saldoPrima - Double.parseDouble(body.get("amount"));
 				if (saldoDopo >= 0) {

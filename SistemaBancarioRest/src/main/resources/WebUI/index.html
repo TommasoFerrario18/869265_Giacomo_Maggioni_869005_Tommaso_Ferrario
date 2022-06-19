@@ -33,7 +33,6 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th scope="col">ID</th>
                             <th scope="col">Nome</th>
                             <th scope="col">Cognome</th>
                             <th scope="col">Saldo</th>
@@ -41,7 +40,6 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td id="td_id"></td>
                             <td id="td_nome"></td>
                             <td id="td_cognome"></td>
                             <td id="td_saldo"></td>
@@ -90,14 +88,13 @@
                 }
 
                 function createTransactionTable(account) {
-                    var id = account[0].ID;
                     var nome = account[0].Nome;
                     var cognome = account[0].Cognome;
                     var saldo = account[0].Saldo;
                     var transazioni = account[0].Transazioni;
                     console.log(account[0]);
+                    //console.log(transazioni);
 
-                    document.getElementById("td_id").innerHTML = id;
                     document.getElementById("td_nome").innerHTML = nome;
                     document.getElementById("td_cognome").innerHTML = cognome;
                     document.getElementById("td_saldo").innerHTML = saldo;
@@ -110,9 +107,9 @@
                         } else {
                             tabella += '<tr>';
                         }
-                        tabella += '<td>' + transazioni[i].identificativo + '</td>';
-                        tabella += '<td>' + transazioni[i].data + '</td>';
-                        tabella += '<td>' + transazioni[i].importo + '</td>';
+                        tabella += '<td>' + transazioni[i].ID + '</td>';
+                        tabella += '<td>' + transazioni[i].dataOra + '</td>';
+                        tabella += '<td>' + transazioni[i].amount + '</td>';
                         tabella += '<td>' + transazioni[i].mittente + '</td>';
                         tabella += '<td>' + transazioni[i].destinatario + '</td>';
                         tabella += '</tr>';
