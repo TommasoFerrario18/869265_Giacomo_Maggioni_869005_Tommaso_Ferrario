@@ -260,17 +260,18 @@ public class SistemaBancarioRest {
 	public ResponseEntity<String> transferPost(@RequestBody String paramtransazione) {
 		Map<String, String> body = bodyParser(paramtransazione);
 		if (body != null && body.containsKey("from") && body.containsKey("to") && body.containsKey("amount")) {
-			if (Double.parseDouble(body.get("amount")) >= 0) {
-				double saldoPrima = getSaldo(body.get("from"));
-				double saldoDopo = saldoPrima - Double.parseDouble(body.get("amount"));
-				if (saldoDopo >= 0) {
+			double amount = Double.parseDouble(body.get("amount"));
+			if (amount >= 0) {
+				double saldoPrimaM = getSaldo(body.get("from"));
+				double saldoDopoM = saldoPrimaM - amount;
+				if (saldoDopoM >= 0) {
 					String insert = "INSERT INTO Transazione (ID, amount, dataOra, mittente, destinatario) VALUES ('"
-							+ UUID.randomUUID() + "', '" + body.get("amount") + "', datetime('now', 'localtime'), '"
+							+ UUID.randomUUID() + "', '" + amount + "', datetime('now', 'localtime'), '"
 							+ body.get("from") + "', '" + body.get("to") + "')";
-					String updateSaldoM = "UPDATE Account SET Saldo = " + saldoDopo + " WHERE ID = '" + body.get("from")
+					String updateSaldoM = "UPDATE Account SET Saldo = " + saldoDopoM + " WHERE ID = '" + body.get("from")
 							+ "'";
 					String updateSaldoD = "UPDATE Account SET Saldo = "
-							+ (getSaldo(body.get("to")) + Double.parseDouble(body.get("amount"))) + " WHERE ID = '"
+							+ (getSaldo(body.get("to")) + amount) + " WHERE ID = '"
 							+ body.get("to") + "'";
 					// Da fare in una transazione
 					if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoM) != 0 && eseguiUpdate(updateSaldoD) != 0)
