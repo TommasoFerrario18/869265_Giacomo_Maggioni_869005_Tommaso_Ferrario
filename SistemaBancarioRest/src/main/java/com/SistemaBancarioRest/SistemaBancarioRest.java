@@ -93,6 +93,8 @@ public class SistemaBancarioRest {
 
 	private String controlloStringa(String s) {
 		if (s != null && !s.equalsIgnoreCase("")) {
+			s = s.replace("\t", "").replace("\n", "").replace("\\", "");
+			s = s.replace("$", "").replace(";", "").replace(" DROP ", "").replace(" ALTER ", "");
 			return s.trim();
 		}
 		return "";
@@ -260,14 +262,11 @@ public class SistemaBancarioRest {
 				double saldoPrima = getSaldo(body.get("from"));
 				double saldoDopo = saldoPrima - Double.parseDouble(body.get("amount"));
 				if (saldoDopo >= 0) {
-					String insert = "INSERT INTO Transazione (ID, amount, dataOra, mittente, destinatario) VALUES ('"
-							+ UUID.randomUUID() + "', '" + body.get("amount") + "', datetime('now', 'localtime'), '"
-							+ body.get("from") + "', '" + body.get("to") + "')";
-					String updateSaldoM = "UPDATE Account SET Saldo = " + saldoDopo + " WHERE ID = '" + body.get("from")
-							+ "'";
-					String updateSaldoD = "UPDATE Account SET Saldo = "
-							+ (getSaldo(body.get("to")) + Double.parseDouble(body.get("amount"))) + " WHERE ID = '"
-							+ body.get("to") + "'";
+					String insert = creaInsert(UUID.randomUUID().toString(), Double.parseDouble(body.get("amount")),
+							body.get("to"), body.get("from"));
+					String updateSaldoM = creaUpdate(saldoDopo, body.get("from"));
+					String updateSaldoD = creaUpdate(
+							(getSaldo(body.get("to")) + Double.parseDouble(body.get("amount"))), body.get("to"));
 					System.out.println(insert);
 					db.startTransaction();
 					if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoM) != 0
@@ -292,16 +291,14 @@ public class SistemaBancarioRest {
 			String query = "SELECT amount, mittente, destinatario FROM Transazione WHERE ID = '" + body.get("id") + "'";
 			List<HashMap<String, String>> res = eseguiQuery(query);
 			if ((getSaldo(res.get(0).get("destinatario")) - Double.parseDouble(res.get(0).get("amount"))) >= 0) {
-				String insert = "INSERT INTO Transazione (ID, amount, dataOra, mittente, destinatario) VALUES ('"
-						+ UUID.randomUUID() + "', " + res.get(0).get("amount") + ", datetime('now', 'localtime'), '"
-						+ res.get(0).get("destinatario") + "', '" + res.get(0).get("mittente") + "')";
-
-				String updateSaldoD = "UPDATE Account SET Saldo = "
-						+ (getSaldo(res.get(0).get("destinatario")) - Double.parseDouble(res.get(0).get("amount")))
-						+ " WHERE ID = '" + res.get(0).get("destinatario") + "'";
-				String updateSaldoM = "UPDATE Account SET Saldo = "
-						+ (getSaldo(res.get(0).get("mittente")) + Double.parseDouble(res.get(0).get("amount")))
-						+ " WHERE ID = '" + res.get(0).get("mittente") + "'";
+				String insert = creaInsert(UUID.randomUUID().toString(), Double.parseDouble(res.get(0).get("amount")),
+						res.get(0).get("mittente"), res.get(0).get("destinatario"));
+				String updateSaldoD = creaUpdate(
+						(getSaldo(res.get(0).get("destinatario")) - Double.parseDouble(res.get(0).get("amount"))),
+						res.get(0).get("destinatario"));
+				String updateSaldoM = creaUpdate(
+						(getSaldo(res.get(0).get("mittente")) + Double.parseDouble(res.get(0).get("amount"))),
+						res.get(0).get("mittente"));
 				db.startTransaction();
 				if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoD) != 0 && eseguiUpdate(updateSaldoM) != 0) {
 					db.commit();
@@ -315,5 +312,14 @@ public class SistemaBancarioRest {
 				throw new InvalidBalanceException();
 		}
 		return new ResponseEntity<String>("Manca ID transazione", HttpStatus.BAD_REQUEST);
+	}
+
+	private String creaInsert(String uuid, double amount, String destinatario, String mittente) {
+		return "INSERT INTO Transazione (ID, amount, dataOra, mittente, destinatario) VALUES ('" + uuid + "', " + amount
+				+ ", datetime('now', 'localtime'), '" + mittente + "', '" + destinatario + "')";
+	}
+
+	private String creaUpdate(double amount, String id) {
+		return "UPDATE Account SET Saldo = " + amount + " WHERE ID = '" + id + "'";
 	}
 }
