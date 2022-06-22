@@ -106,12 +106,14 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/account", method = RequestMethod.GET)
-	public String getAccount() {
+	public HttpEntity<String> getAccount() {
 		List<HashMap<String, String>> results = eseguiQuery("SELECT ID, Nome, Cognome FROM Account");
+		HttpHeaders header = new HttpHeaders();
+		header.add("Content-Type", "application/json");
 		if (results != null)
-			return (String) new Gson().toJson(results);
+			return new HttpEntity<String>((String) new Gson().toJson(results), header);
 		else
-			return "";
+			return new HttpEntity<String>("[]", header);
 	}
 
 	@RequestMapping(value = "/api/account", method = RequestMethod.POST)
