@@ -105,6 +105,11 @@ public class SistemaBancarioRest {
 		return HTMLtoString("src/main/resources/WebUI/index.html");
 	}
 
+	@RequestMapping(value = "/transfer", method = RequestMethod.GET)
+	public String transfer() throws FileNotFoundException, IOException {
+		return HTMLtoString("src/main/resources/WebUI/transfer.html");
+	}
+
 	@RequestMapping(value = "/api/account", method = RequestMethod.GET)
 	public HttpEntity<String> getAccount() {
 		List<HashMap<String, String>> results = eseguiQuery("SELECT ID, Nome, Cognome FROM Account");
@@ -143,11 +148,11 @@ public class SistemaBancarioRest {
 		if (accountID != null && (!accountID.equalsIgnoreCase(""))) {
 			String query = "DELETE FROM Account WHERE ID = '" + accountID + "'";
 			if (eseguiUpdate(query) != 0)
-				return new ResponseEntity<String>("Ok", HttpStatus.OK);
+				return new ResponseEntity<String>("Cancellato", HttpStatus.OK);
 			else
-				return new ResponseEntity<String>("Non cancellato no eccezione", HttpStatus.OK);
+				return new ResponseEntity<String>("Non Cancellato", HttpStatus.OK);
 		}
-		return new ResponseEntity<String>("Failed", HttpStatus.BAD_REQUEST);
+		return new ResponseEntity<String>("Non Cancellato", HttpStatus.BAD_REQUEST);
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.GET)
@@ -163,6 +168,7 @@ public class SistemaBancarioRest {
 			if (sb != null) {
 				HttpHeaders header = new HttpHeaders();
 				header.add("X-Sistema-Bancario", res.get(0).get("Nome") + ";" + res.get(0).get("Cognome"));
+				header.add("Content-Type", "application/json");
 				return new HttpEntity<String>(sb.toString(), header);
 			}
 		}
@@ -274,7 +280,7 @@ public class SistemaBancarioRest {
 					if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoM) != 0
 							&& eseguiUpdate(updateSaldoD) != 0) {
 						db.commit();
-						return new ResponseEntity<String>("Ok", HttpStatus.OK);
+						return new ResponseEntity<String>("OK", HttpStatus.OK);
 					} else {
 						db.rollback();
 						return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
@@ -304,7 +310,7 @@ public class SistemaBancarioRest {
 				db.startTransaction();
 				if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoD) != 0 && eseguiUpdate(updateSaldoM) != 0) {
 					db.commit();
-					return new ResponseEntity<String>("Ok", HttpStatus.OK);
+					return new ResponseEntity<String>("OK", HttpStatus.OK);
 				} else {
 					db.rollback();
 					return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
