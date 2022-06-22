@@ -33,6 +33,42 @@ public class DataHandler {
 		return c.createStatement().executeUpdate(statement);
 	}
 
+	public void startTransaction() {
+		try {
+			c.setAutoCommit(false);
+		} catch (SQLException e) {
+		} finally {
+			try {
+				c.setAutoCommit(true);
+			} catch (SQLException e) {
+			}
+		}
+	}
+
+	public void commit() {
+		try {
+			c.commit();
+		} catch (SQLException e) {
+		} finally {
+			try {
+				c.setAutoCommit(true);
+			} catch (SQLException e) {
+			}
+		}
+	}
+
+	public void rollback() {
+		try {
+			c.rollback();
+		} catch (SQLException e) {
+		} finally {
+			try {
+				c.setAutoCommit(true);
+			} catch (SQLException e) {
+			}
+		}
+	}
+
 	// Main per prova / esempio connessione
 	public static void main(String[] args) {
 		DataHandler db = new DataHandler();

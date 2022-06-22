@@ -254,8 +254,9 @@ public class SistemaBancarioRest {
 	@RequestMapping(value = "/api/transfer", method = RequestMethod.POST)
 	public ResponseEntity<String> transferPost(@RequestBody String paramtransazione) {
 		Map<String, String> body = bodyParser(paramtransazione);
+		System.out.println(body.toString());
 		if (body != null && body.containsKey("from") && body.containsKey("to") && body.containsKey("amount")) {
-			if (Double.parseDouble(body.get("amount")) < 0) {
+			if (Double.parseDouble(body.get("amount")) > 0) {
 				double saldoPrima = getSaldo(body.get("from"));
 				double saldoDopo = saldoPrima - Double.parseDouble(body.get("amount"));
 				if (saldoDopo >= 0) {
@@ -267,11 +268,16 @@ public class SistemaBancarioRest {
 					String updateSaldoD = "UPDATE Account SET Saldo = "
 							+ (getSaldo(body.get("to")) + Double.parseDouble(body.get("amount"))) + " WHERE ID = '"
 							+ body.get("to") + "'";
-					// Da fare in una transazione
-					if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoM) != 0 && eseguiUpdate(updateSaldoD) != 0)
+					System.out.println(insert);
+					db.startTransaction();
+					if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoM) != 0
+							&& eseguiUpdate(updateSaldoD) != 0) {
+						db.commit();
 						return new ResponseEntity<String>("Ok", HttpStatus.OK);
-					else
+					} else {
+						db.rollback();
 						return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
+					}
 				} else
 					throw new InvalidBalanceException();
 			}
@@ -296,11 +302,14 @@ public class SistemaBancarioRest {
 				String updateSaldoM = "UPDATE Account SET Saldo = "
 						+ (getSaldo(res.get(0).get("mittente")) + Double.parseDouble(res.get(0).get("amount")))
 						+ " WHERE ID = '" + res.get(0).get("mittente") + "'";
-				// Da fare in una transazione
-				if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoD) != 0 && eseguiUpdate(updateSaldoM) != 0)
+				db.startTransaction();
+				if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoD) != 0 && eseguiUpdate(updateSaldoM) != 0) {
+					db.commit();
 					return new ResponseEntity<String>("Ok", HttpStatus.OK);
-				else
+				} else {
+					db.rollback();
 					return new ResponseEntity<String>("Non Eseguita", HttpStatus.OK);
+				}
 
 			} else
 				throw new InvalidBalanceException();
