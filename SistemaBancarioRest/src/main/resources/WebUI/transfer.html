@@ -35,43 +35,53 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Mittente</h5>
-                <input type="text" class="form-control" id="mittente">
+                <input type="text" class="form-control" id="mittente" maxlength="20">
                 <h5 class="card-title" style="margin-top: 16px;">Destinatario</h5>
-                <input type="text" class="form-control" id="destinatario">
+                <input type="text" class="form-control" id="destinatario" maxlength="20">
                 <h5 class="card-title" style="margin-top: 16px;">Ammontare</h5>
-                <input type="number" class="form-control" id="ammontare">
+                <input type="number" class="form-control" id="ammontare" min="0">
                 <br><br>
                 <button type="button" id="transazioneButton" class="btn btn-primary">Esegui transazione</button>
             </div>
         </div>
+        <div id="warning"></div>
         <div id="message" style="margin-top: 24px;"></div>
     </div>
     <script>
 
         showMessageDiv(false);
+        showInputWarning(false);
         document.getElementById("transazioneButton").addEventListener("click", () => {
-            
+
             showMessageDiv(false);
+            showInputWarning(false);
 
-            let params = "from=" + document.getElementById("mittente").value + "&to=" + document.getElementById("destinatario").value + "&amount=" + document.getElementById("ammontare").value;
+            let idm = document.getElementById("mittente").value;
+            let idd = document.getElementById("destinatario").value;
+            let amo = document.getElementById("ammontare").value;
 
-            let xhttp = new XMLHttpRequest();
-            xhttp.open("POST", "http://localhost:8080/api/transfer");
-            xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            xhttp.onreadystatechange = () => {
-                if (xhttp.readyState == 4 && xhttp.status == 200) {
-                    if ("Non Eseguita" === xhttp.responseText) {
+            if(!checkInput(idm) || !checkInput(idd) || !/^[0-9]*$/.test(amo)){
+                showInputWarning(true);
+            }else{
+                let params = "from=" + idm + "&to=" + idd + "&amount=" + amo;
+                let xhttp = new XMLHttpRequest();
+                xhttp.open("POST", "http://localhost:8080/api/transfer");
+                xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                xhttp.onreadystatechange = () => {
+                    if (xhttp.readyState == 4 && xhttp.status == 200) {
+                        if ("Non Eseguita" === xhttp.responseText) {
+                            displayTransactionMessage(2, "Transazione fallita");
+                        } else {
+                            displayTransactionMessage(1, "Transazione eseguita con successo");
+                        }
+                    } else if (xhttp.readyState == 4 && xhttp.status == 400) {
                         displayTransactionMessage(2, "Transazione fallita");
-                    } else {
-                        displayTransactionMessage(1, "Transazione eseguita con successo");
+                    } else if (xhttp.readyState == 4 && xhttp.status == 406) {
+                        displayTransactionMessage(2, "Transazione fallita, saldo non sufficiente");
                     }
-                } else if (xhttp.readyState == 4 && xhttp.status == 400) {
-                    displayTransactionMessage(2, "Transazione fallita");
-                } else if (xhttp.readyState == 4 && xhttp.status == 406) {
-                    displayTransactionMessage(2, "Transazione fallita, saldo non sufficiente");
                 }
+                xhttp.send(params);
             }
-            xhttp.send(params);
         });
 
         //type: {1:Successo, 2:Fallimento}
@@ -91,6 +101,27 @@
                 document.getElementById("message").style.visibility = "visible";
             else
                 document.getElementById("message").style.visibility = "hidden";
+        }
+
+        function checkInput(id) {
+            if (id.length != 20) {
+                return false;
+            }
+            if (!/^[a-zA-Z0-9]*$/.test(id)) {
+                return false;
+            }
+            return true;
+        }
+
+        function showInputWarning(bool) {
+            if (bool === true) {
+                document.getElementById("warning").innerHTML = '<div class="alert alert-danger" role="alert" style="margin-top: 24px;">Inserire i dati in modo corretto</div>'
+                document.getElementById("warning").style.visibility = "visible";
+            }
+            else {
+                document.getElementById("warning").innerHTML = '';
+                document.getElementById("warning").style.visibility = "hidden";
+            }
         }
 
     </script>
