@@ -19,12 +19,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 @RestController
 public class SistemaBancarioRest {
@@ -54,8 +56,10 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/account", method = RequestMethod.POST)
-	public ResponseEntity<String> creaAccount(@RequestBody String parametriAccount) {
-		Map<String, String> body = bodyParser(parametriAccount);
+	public ResponseEntity<String> creaAccount(@RequestBody String parametriAccount,
+			@RequestHeader("Content-Type") String Type) {
+
+		Map<String, String> body = bodyParser(parametriAccount, Type);
 		if (body != null && body.containsKey("name") && body.containsKey("surname")) {
 			if (isName(body.get("name")) && isName(body.get("name"))) {
 				String id = creaID();
@@ -105,19 +109,22 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.POST)
-	public ResponseEntity<String> accountPost(@PathVariable String accountId, @RequestBody String parametriAccount) {
-		Map<String, String> body = bodyParser(parametriAccount);
+	public ResponseEntity<String> accountPost(@PathVariable String accountId, @RequestBody String parametriAccount,
+			@RequestHeader("Content-Type") String Type) {
+		Map<String, String> body = bodyParser(parametriAccount, Type);
 		if (body != null && body.containsKey("amount") && accountId != null && isAccountId(accountId)
 				&& isNumber(body.get("amount"))) {
 			String query = "";
 			double saldo = getSaldo(accountId);
 			if (Double.parseDouble(body.get("amount")) > 0) {
 				query = creaUpdate((saldo + Double.parseDouble(body.get("amount"))), accountId);
-			} else {
+			} else if (Double.parseDouble(body.get("amount")) < 0) {
 				if ((saldo + Double.parseDouble(body.get("amount"))) > 0)
 					query = creaUpdate((saldo + Double.parseDouble(body.get("amount"))), accountId);
 				else
 					throw new InvalidBalanceException();
+			} else {
+				return new ResponseEntity<String>("Failed", HttpStatus.BAD_REQUEST);
 			}
 			String uuid = UUID.randomUUID().toString();
 			String transazione = creaInsert(uuid, Double.parseDouble(body.get("amount")), accountId, accountId);
@@ -135,12 +142,14 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.PUT)
-	public ResponseEntity<String> accountPut(@PathVariable String accountId, @RequestBody String parametriAccount) {
-		Map<String, String> body = bodyParser(parametriAccount);
+	public ResponseEntity<String> accountPut(@PathVariable String accountId, @RequestBody String parametriAccount,
+			@RequestHeader("Content-Type") String type) {
+		Map<String, String> body = bodyParser(parametriAccount, type);
 		if (accountId != null && isAccountId(accountId) && body.containsKey("name") && body.containsKey("surname")) {
 			if (isName(body.get("name")) && isName(body.get("surname"))) {
 				String query = "UPDATE Account SET Nome = '" + body.get("name") + "', Cognome = '" + body.get("surname")
 						+ "' WHERE ID = '" + accountId + "'";
+				System.out.println(query);
 				if (eseguiUpdate(query) > 0)
 					return new ResponseEntity<String>("OK", HttpStatus.OK);
 				else
@@ -151,8 +160,9 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.PATCH)
-	public ResponseEntity<String> accountPatch(@PathVariable String accountId, @RequestBody String parametriAccount) {
-		Map<String, String> body = bodyParser(parametriAccount);
+	public ResponseEntity<String> accountPatch(@PathVariable String accountId, @RequestBody String parametriAccount,
+			@RequestHeader("Content-Type") String Type) {
+		Map<String, String> body = bodyParser(parametriAccount, Type);
 		if (accountId != null && isAccountId(accountId) && (body.containsKey("name") || body.containsKey("surname"))
 				&& (isName(body.get("name")) || isName(body.get("surname")))) {
 			String query = (body.containsKey("name"))
@@ -181,8 +191,9 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/transfer", method = RequestMethod.POST)
-	public ResponseEntity<String> transferPost(@RequestBody String paramtransazione) {
-		Map<String, String> body = bodyParser(paramtransazione);
+	public ResponseEntity<String> transferPost(@RequestBody String paramtransazione,
+			@RequestHeader("Content-Type") String Type) {
+		Map<String, String> body = bodyParser(paramtransazione, Type);
 		if (body != null && body.containsKey("from") && body.containsKey("to") && body.containsKey("amount")) {
 			if (isAccountId(body.get("from")) && isAccountId(body.get("to")) && isNumber(body.get("amount")))
 				if (Double.parseDouble(body.get("amount")) > 0)
@@ -192,12 +203,16 @@ public class SistemaBancarioRest {
 	}
 
 	@RequestMapping(value = "/api/divert", method = RequestMethod.POST)
-	public ResponseEntity<String> divertPost(@RequestBody String id) {
-		Map<String, String> body = bodyParser(id);
+	public ResponseEntity<String> divertPost(@RequestBody String id, @RequestHeader("Content-Type") String Type) {
+		Map<String, String> body = bodyParser(id, Type);
 		if (body != null && body.containsKey("id") && isUUID(body.get("id"))) {
 			String query = "SELECT amount, mittente, destinatario FROM Transazione WHERE ID = '" + body.get("id") + "'";
 			List<HashMap<String, String>> res = eseguiQuery(query);
-			return addTransazione(res.get(0).get("destinatario"), res.get(0).get("mittente"), res.get(0).get("amount"));
+			if (!res.get(0).get("destinatario").equals(res.get(0).get("mittente")))
+				return addTransazione(res.get(0).get("destinatario"), res.get(0).get("mittente"),
+						res.get(0).get("amount"));
+			else
+				return new ResponseEntity<String>("Transazione non valida", HttpStatus.NOT_ACCEPTABLE);
 		}
 		return new ResponseEntity<String>("Manca ID transazione", HttpStatus.BAD_REQUEST);
 	}
@@ -226,18 +241,29 @@ public class SistemaBancarioRest {
 	}
 
 	/* Metodi utili */
-	private Map<String, String> bodyParser(String reqBody) {
+	private Map<String, String> bodyParser(String reqBody, String type) {
+		if (type.equals("application/x-www-form-urlencoded")) {
+			Map<String, String> parseBody = new HashMap<String, String>();
+
+			String[] values = reqBody.split("&");
+
+			for (int i = 0; i < values.length; ++i) {
+				String[] coppia = values[i].split("=");
+				if (coppia.length != 2)
+					continue;
+				else
+					parseBody.put(coppia[0], coppia[1]);
+			}
+			return parseBody;
+		} else if (type.equals("application/json"))
+			return bodyParserJSON(reqBody);
+		return new HashMap<String, String>();
+	}
+
+	private Map<String, String> bodyParserJSON(String reqBody) {
 		Map<String, String> parseBody = new HashMap<String, String>();
-
-		String[] values = reqBody.split("&");
-
-		for (int i = 0; i < values.length; ++i) {
-			String[] coppia = values[i].split("=");
-			if (coppia.length != 2)
-				continue;
-			else
-				parseBody.put(coppia[0], coppia[1]);
-		}
+		JsonObject convertedObject = new Gson().fromJson(reqBody, JsonObject.class);
+		parseBody = new Gson().fromJson(convertedObject, Map.class);
 		return parseBody;
 	}
 
