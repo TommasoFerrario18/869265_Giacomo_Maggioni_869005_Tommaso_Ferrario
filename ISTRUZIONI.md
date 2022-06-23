@@ -24,5 +24,5 @@ Dipendeze:
 I metodi PUT e PATCH dell'endpoint /api/account/{accountId} accettano in input i 
 dati in formato JSON.
 
-Il file SistemaBancario.postman_collection.json contiene gli endpoint, creati con 
-postman, che abbiamo utilizazto per testare l'applicazione.  
+Nel caso in cui il database creato con SQLite non funzioni, è possibile creare 
+lo stesso database utilizzando lo script contenuto nel file db.sql
