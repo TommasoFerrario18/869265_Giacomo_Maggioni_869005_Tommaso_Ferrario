@@ -180,7 +180,6 @@ public class SistemaBancarioRest {
 	@RequestMapping(value = "/api/transfer", method = RequestMethod.POST)
 	public ResponseEntity<String> transferPost(@RequestBody String paramtransazione) {
 		Map<String, String> body = bodyParser(paramtransazione);
-		System.out.println(body.toString());
 		if (body != null && body.containsKey("from") && body.containsKey("to") && body.containsKey("amount")) {
 			if (Double.parseDouble(body.get("amount")) > 0) {
 				return addTransazione(body.get("from"), body.get("to"), body.get("amount"));
@@ -204,15 +203,17 @@ public class SistemaBancarioRest {
 		double saldoPrima = getSaldo(mittente);
 		double saldoDopo = saldoPrima - Double.parseDouble(amount);
 		if (saldoDopo >= 0) {
-			String insert = creaInsert(UUID.randomUUID().toString(), Double.parseDouble(amount), destinatario,
-					mittente);
+			String uuid = UUID.randomUUID().toString();
+			String insert = creaInsert(uuid, Double.parseDouble(amount), destinatario, mittente);
 			String updateSaldoM = creaUpdate(saldoDopo, mittente);
 			String updateSaldoD = creaUpdate((getSaldo(destinatario) + Double.parseDouble(amount)), destinatario);
-			// System.out.println(insert);
 			db.startTransaction();
 			if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoM) != 0 && eseguiUpdate(updateSaldoD) != 0) {
 				db.commit();
-				return new ResponseEntity<String>("OK", HttpStatus.OK);
+				return ResponseEntity.ok().header("Content-Type", "application/json")
+						.body("[{\"Transazione\": \"" + uuid + "\", \"Mittente\": { \"accountId\": \"" + mittente
+								+ "\", \"saldo\": " + getSaldo(mittente) + "}, \"Destinatario\": { \"accountId\": \""
+								+ destinatario + "\", \"saldo\": " + getSaldo(destinatario) + "}}]");
 			} else {
 				db.rollback();
 				return new ResponseEntity<String>("Non Eseguita", HttpStatus.NOT_MODIFIED);
