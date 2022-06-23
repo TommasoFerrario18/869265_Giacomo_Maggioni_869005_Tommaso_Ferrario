@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -111,7 +110,7 @@ public class SistemaBancarioRest {
 			if (Double.parseDouble(body.get("amount")) > 0) {
 				query = creaUpdate((saldo + Double.parseDouble(body.get("amount"))), accountId);
 			} else {
-				if ((saldo - Double.parseDouble(body.get("amount"))) > 0)
+				if ((saldo + Double.parseDouble(body.get("amount"))) > 0)
 					query = creaUpdate((saldo + Double.parseDouble(body.get("amount"))), accountId);
 				else
 					throw new InvalidBalanceException();
