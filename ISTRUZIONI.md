@@ -1,4 +1,6 @@
-Nella creazione del progetto abbiamo utilizato le seguenti librerie: GSON, 
+L'applicazione è stata sviluppata utilizazndo eclipse su Windows x64. 
+
+Nella creazione del progetto abbiamo utilizato le seguenti librerie: Spring, GSON, 
 sqlite-jdbc. Le abbiamo importate utilizzando il Maven. 
 Tutte le dipendenze che abbiamo utilizzato dovrebbero essere già presenti nel 
 progetto, in caso contrario è sufficiente inserire nel tag dependencies del file 
@@ -19,3 +21,8 @@ Dipendeze:
 	<version>3.36.0.3</version>
 </dependency>
 
+I metodi PUT e PATCH dell'endpoint /api/account/{accountId} accettano in input i 
+dati in formato JSON.
+
+Il file SistemaBancario.postman_collection.json contiene gli endpoint, creati con 
+postman, che abbiamo utilizazto per testare l'applicazione.  

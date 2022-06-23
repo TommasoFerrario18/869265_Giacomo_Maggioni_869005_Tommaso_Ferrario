@@ -25,6 +25,25 @@
 			"response": []
 		},
 		{
+			"name": "endpoint /transfer",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/transfer",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"transfer"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "endpoint /api/account",
 			"request": {
 				"method": "GET",
@@ -164,7 +183,12 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "name=Daniele&surname=Giorgi"
+					"raw": "{\"name\": \"Daniele\", \"surname\":\"Giorgi\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
 				},
 				"url": {
 					"raw": "http://localhost:8080/api/account/2c5956a7d0c8d5fe3f8f",
@@ -189,7 +213,12 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "surname=Brambilla"
+					"raw": "{\"surname\":\"Brazorf\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
 				},
 				"url": {
 					"raw": "http://localhost:8080/api/account/2c5956a7d0c8d5fe3f8f",
@@ -293,25 +322,6 @@
 					"path": [
 						"api",
 						"divert"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "endpoint /transfer",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8080/transfer",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"transfer"
 					]
 				}
 			},
