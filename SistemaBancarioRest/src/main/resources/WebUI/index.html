@@ -36,12 +36,13 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Account ID</h5>
-                    <input type="text" class="form-control" id="accountID">
+                    <input type="text" class="form-control" id="accountID" maxlength="20">
                     <br><br>
                     <button type="button" id="accountButton" class="btn btn-primary">Ottieni informazioni</button>
                 </div>
             </div>
         </div>
+        <div id="message"></div>
         <div id="output" style="margin-top: 24px;">
             <div id="tableTitle">
                 <table class="table">
@@ -79,20 +80,47 @@
             <script>
 
                 showTransactionDiv(false);
+                showInputWarning(false);
 
                 document.getElementById("accountButton").addEventListener("click", () => {
                     let accountID = document.getElementById("accountID").value;
 
-                    let xhttp = new XMLHttpRequest()
-                    xhttp.onreadystatechange = () => {
-                        if (xhttp.readyState == 4 && xhttp.status == 200) {
-                            var obj = JSON.parse(xhttp.responseText);
-                            createTransactionTable(obj);
+                    if(!checkInput(accountID)){
+                        showInputWarning(true);
+                    }else{
+                        showInputWarning(false);
+                        let xhttp = new XMLHttpRequest()
+                        xhttp.onreadystatechange = () => {
+                            if (xhttp.readyState == 4 && xhttp.status == 200) {
+                                var obj = JSON.parse(xhttp.responseText);
+                                createTransactionTable(obj);
+                            }
                         }
+                        xhttp.open("GET", "http://localhost:8080/api/account/" + accountID);
+                        xhttp.send();
                     }
-                    xhttp.open("GET", "http://localhost:8080/api/account/" + accountID)
-                    xhttp.send()
                 });
+
+                function checkInput(id){
+                    if(id.length != 20){
+                        return false;
+                    }
+                    if(!/^[a-zA-Z0-9]*$/.test(id)){
+                        return false;
+                    }
+                    return true;
+                }
+
+                function showInputWarning(bool){
+                    if (bool === true){
+                        document.getElementById("message").innerHTML = '<div class="alert alert-danger" role="alert" style="margin-top: 24px;">Inserire un ID corretto</div>'
+                        document.getElementById("message").style.visibility = "visible";
+                    }
+                    else{
+                        document.getElementById("message").innerHTML = '';
+                        document.getElementById("message").style.visibility = "hidden";
+                    }
+                }
 
                 function showTransactionDiv(bool) {
                     if (bool === true)
