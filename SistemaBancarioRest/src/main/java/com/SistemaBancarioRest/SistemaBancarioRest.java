@@ -184,26 +184,7 @@ public class SistemaBancarioRest {
 		System.out.println(body.toString());
 		if (body != null && body.containsKey("from") && body.containsKey("to") && body.containsKey("amount")) {
 			if (Double.parseDouble(body.get("amount")) > 0) {
-				double saldoPrima = getSaldo(body.get("from"));
-				double saldoDopo = saldoPrima - Double.parseDouble(body.get("amount"));
-				if (saldoDopo >= 0) {
-					String insert = creaInsert(UUID.randomUUID().toString(), Double.parseDouble(body.get("amount")),
-							body.get("to"), body.get("from"));
-					String updateSaldoM = creaUpdate(saldoDopo, body.get("from"));
-					String updateSaldoD = creaUpdate(
-							(getSaldo(body.get("to")) + Double.parseDouble(body.get("amount"))), body.get("to"));
-					System.out.println(insert);
-					db.startTransaction();
-					if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoM) != 0
-							&& eseguiUpdate(updateSaldoD) != 0) {
-						db.commit();
-						return new ResponseEntity<String>("OK", HttpStatus.OK);
-					} else {
-						db.rollback();
-						return new ResponseEntity<String>("Non Eseguita", HttpStatus.NOT_MODIFIED);
-					}
-				} else
-					throw new InvalidBalanceException();
+				return addTransazione(body.get("from"), body.get("to"), body.get("amount"));
 			}
 		}
 		return new ResponseEntity<String>("Transazione non valida", HttpStatus.BAD_REQUEST);
@@ -215,28 +196,30 @@ public class SistemaBancarioRest {
 		if (body != null && body.containsKey("id")) {
 			String query = "SELECT amount, mittente, destinatario FROM Transazione WHERE ID = '" + body.get("id") + "'";
 			List<HashMap<String, String>> res = eseguiQuery(query);
-			if ((getSaldo(res.get(0).get("destinatario")) - Double.parseDouble(res.get(0).get("amount"))) >= 0) {
-				String insert = creaInsert(UUID.randomUUID().toString(), Double.parseDouble(res.get(0).get("amount")),
-						res.get(0).get("mittente"), res.get(0).get("destinatario"));
-				String updateSaldoD = creaUpdate(
-						(getSaldo(res.get(0).get("destinatario")) - Double.parseDouble(res.get(0).get("amount"))),
-						res.get(0).get("destinatario"));
-				String updateSaldoM = creaUpdate(
-						(getSaldo(res.get(0).get("mittente")) + Double.parseDouble(res.get(0).get("amount"))),
-						res.get(0).get("mittente"));
-				db.startTransaction();
-				if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoD) != 0 && eseguiUpdate(updateSaldoM) != 0) {
-					db.commit();
-					return new ResponseEntity<String>("OK", HttpStatus.OK);
-				} else {
-					db.rollback();
-					return new ResponseEntity<String>("Non Eseguita", HttpStatus.NOT_MODIFIED);
-				}
-
-			} else
-				throw new InvalidBalanceException();
+			return addTransazione(res.get(0).get("destinatario"), res.get(0).get("mittente"), res.get(0).get("amount"));
 		}
 		return new ResponseEntity<String>("Manca ID transazione", HttpStatus.BAD_REQUEST);
+	}
+
+	private ResponseEntity<String> addTransazione(String mittente, String destinatario, String amount) {
+		double saldoPrima = getSaldo(mittente);
+		double saldoDopo = saldoPrima - Double.parseDouble(amount);
+		if (saldoDopo >= 0) {
+			String insert = creaInsert(UUID.randomUUID().toString(), Double.parseDouble(amount), destinatario,
+					mittente);
+			String updateSaldoM = creaUpdate(saldoDopo, mittente);
+			String updateSaldoD = creaUpdate((getSaldo(destinatario) + Double.parseDouble(amount)), destinatario);
+			// System.out.println(insert);
+			db.startTransaction();
+			if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoM) != 0 && eseguiUpdate(updateSaldoD) != 0) {
+				db.commit();
+				return new ResponseEntity<String>("OK", HttpStatus.OK);
+			} else {
+				db.rollback();
+				return new ResponseEntity<String>("Non Eseguita", HttpStatus.NOT_MODIFIED);
+			}
+		} else
+			throw new InvalidBalanceException();
 	}
 
 	/* Metodi utili */
