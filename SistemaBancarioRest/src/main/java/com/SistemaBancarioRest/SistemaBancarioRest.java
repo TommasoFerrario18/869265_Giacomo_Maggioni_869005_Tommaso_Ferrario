@@ -226,12 +226,26 @@ public class SistemaBancarioRest {
 			String updateSaldoM = creaUpdate(saldoDopo, mittente);
 			String updateSaldoD = creaUpdate((getSaldo(destinatario) + Double.parseDouble(amount)), destinatario);
 			db.startTransaction();
-			if (eseguiUpdate(insert) != 0 && eseguiUpdate(updateSaldoM) != 0 && eseguiUpdate(updateSaldoD) != 0) {
-				db.commit();
-				return ResponseEntity.ok().header("Content-Type", "application/json")
-						.body("[{\"Transazione\": \"" + uuid + "\", \"Mittente\": { \"accountId\": \"" + mittente
-								+ "\", \"saldo\": " + getSaldo(mittente) + "}, \"Destinatario\": { \"accountId\": \""
-								+ destinatario + "\", \"saldo\": " + getSaldo(destinatario) + "}}]");
+			if (eseguiUpdate(insert) != 0) {
+				if (mittente.equals(destinatario)) {
+					db.commit();
+					return ResponseEntity.ok().header("Content-Type", "application/json")
+							.body("[{\"Transazione\": \"" + uuid + "\", \"Mittente\": { \"accountId\": \"" + mittente
+									+ "\", \"saldo\": " + getSaldo(mittente)
+									+ "}, \"Destinatario\": { \"accountId\": \"" + destinatario + "\", \"saldo\": "
+									+ getSaldo(destinatario) + "}}]");
+				}
+				if (eseguiUpdate(updateSaldoM) != 0 && eseguiUpdate(updateSaldoD) != 0) {
+					db.commit();
+					return ResponseEntity.ok().header("Content-Type", "application/json")
+							.body("[{\"Transazione\": \"" + uuid + "\", \"Mittente\": { \"accountId\": \"" + mittente
+									+ "\", \"saldo\": " + getSaldo(mittente)
+									+ "}, \"Destinatario\": { \"accountId\": \"" + destinatario + "\", \"saldo\": "
+									+ getSaldo(destinatario) + "}}]");
+				} else {
+					db.rollback();
+					return new ResponseEntity<String>("Non Eseguita", HttpStatus.NOT_MODIFIED);
+				}
 			} else {
 				db.rollback();
 				return new ResponseEntity<String>("Non Eseguita", HttpStatus.NOT_MODIFIED);
