@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -56,22 +57,24 @@ public class SistemaBancarioRest {
 	public ResponseEntity<String> creaAccount(@RequestBody String parametriAccount) {
 		Map<String, String> body = bodyParser(parametriAccount);
 		if (body != null && body.containsKey("name") && body.containsKey("surname")) {
-			String id = creaID();
-			id = (id.charAt(0) != '-') ? id : (String) id.substring(1, id.length());
-			String query = "INSERT INTO Account(ID, Nome, Cognome, Saldo) VALUES('" + id + "', '" + body.get("name")
-					+ "', '" + body.get("surname") + "', 0.0)";
-			if (eseguiUpdate(query) != 0)
-				return ResponseEntity.ok().header("Content-Type", "application/json")
-						.body("[{\"accountId\": \"" + id + "\"}]");
-			else
-				return ResponseEntity.ok().body("Failed");
+			if (isName(body.get("name")) && isName(body.get("name"))) {
+				String id = creaID();
+				id = (id.charAt(0) != '-') ? id : (String) id.substring(1, id.length());
+				String query = "INSERT INTO Account(ID, Nome, Cognome, Saldo) VALUES('" + id + "', '" + body.get("name")
+						+ "', '" + body.get("surname") + "', 0.0)";
+				if (eseguiUpdate(query) != 0)
+					return ResponseEntity.ok().header("Content-Type", "application/json")
+							.body("[{\"accountId\": \"" + id + "\"}]");
+				else
+					return ResponseEntity.ok().body("Failed");
+			}
 		}
 		return ResponseEntity.badRequest().body("Failed");
 	}
 
 	@RequestMapping(value = "/api/account", method = RequestMethod.DELETE)
 	public ResponseEntity<String> eliminaAccount(@RequestParam String accountID) {
-		if (accountID != null && (!accountID.equalsIgnoreCase(""))) {
+		if (accountID != null && isAccountId(accountID)) {
 			String query = "DELETE FROM Account WHERE ID = '" + accountID + "'";
 			if (eseguiUpdate(query) != 0)
 				return new ResponseEntity<String>("Cancellato", HttpStatus.OK);
@@ -83,15 +86,15 @@ public class SistemaBancarioRest {
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.GET)
 	public ResponseEntity<String> getAccountInfo(@PathVariable String accountId) {
-		if (accountId != null && !accountId.equalsIgnoreCase("")) {
+		if (accountId != null && isAccountId(accountId)) {
 			String query = "SELECT Nome, Cognome, Saldo FROM Account WHERE ID = '" + accountId + "'";
 			String queryT = "SELECT * FROM Transazione WHERE (mittente = '" + accountId + "' OR destinatario = '"
 					+ accountId + "') ORDER BY dataOra DESC";
 			List<HashMap<String, String>> res = eseguiQuery(query);
-			StringBuilder sb = new StringBuilder();
-			sb.append(new Gson().toJson(res)).insert(sb.indexOf("}"),
-					",\"Transazioni\":" + new Gson().toJson(eseguiQuery(queryT)));
-			if (sb != null) {
+			if (!res.isEmpty()) {
+				StringBuilder sb = new StringBuilder();
+				sb.append(new Gson().toJson(res)).insert(sb.indexOf("}"),
+						",\"Transazioni\":" + new Gson().toJson(eseguiQuery(queryT)));
 				HttpHeaders headers = new HttpHeaders();
 				headers.add("X-Sistema-Bancario", res.get(0).get("Nome") + ";" + res.get(0).get("Cognome"));
 				headers.add("Content-Type", "application/json");
@@ -104,7 +107,8 @@ public class SistemaBancarioRest {
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.POST)
 	public ResponseEntity<String> accountPost(@PathVariable String accountId, @RequestBody String parametriAccount) {
 		Map<String, String> body = bodyParser(parametriAccount);
-		if (body != null && body.containsKey("amount") && accountId != null && !accountId.equalsIgnoreCase("")) {
+		if (body != null && body.containsKey("amount") && accountId != null && isAccountId(accountId)
+				&& isNumber(body.get("amount"))) {
 			String query = "";
 			double saldo = getSaldo(accountId);
 			if (Double.parseDouble(body.get("amount")) > 0) {
@@ -133,14 +137,15 @@ public class SistemaBancarioRest {
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.PUT)
 	public ResponseEntity<String> accountPut(@PathVariable String accountId, @RequestBody String parametriAccount) {
 		Map<String, String> body = bodyParser(parametriAccount);
-		if (accountId != null && !accountId.equalsIgnoreCase("") && body.containsKey("name")
-				&& body.containsKey("surname")) {
-			String query = "UPDATE Account SET Nome = '" + body.get("name") + "', Cognome = '" + body.get("surname")
-					+ "' WHERE ID = '" + accountId + "'";
-			if (eseguiUpdate(query) > 0)
-				return new ResponseEntity<String>("OK", HttpStatus.OK);
-			else
-				return new ResponseEntity<String>("Failed", HttpStatus.NOT_MODIFIED);
+		if (accountId != null && isAccountId(accountId) && body.containsKey("name") && body.containsKey("surname")) {
+			if (isName(body.get("name")) && isName(body.get("surname"))) {
+				String query = "UPDATE Account SET Nome = '" + body.get("name") + "', Cognome = '" + body.get("surname")
+						+ "' WHERE ID = '" + accountId + "'";
+				if (eseguiUpdate(query) > 0)
+					return new ResponseEntity<String>("OK", HttpStatus.OK);
+				else
+					return new ResponseEntity<String>("Failed", HttpStatus.NOT_MODIFIED);
+			}
 		}
 		return new ResponseEntity<String>("Failed", HttpStatus.BAD_REQUEST);
 	}
@@ -148,10 +153,8 @@ public class SistemaBancarioRest {
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.PATCH)
 	public ResponseEntity<String> accountPatch(@PathVariable String accountId, @RequestBody String parametriAccount) {
 		Map<String, String> body = bodyParser(parametriAccount);
-		if (accountId != null && !accountId.equalsIgnoreCase("")
-				&& (body.containsKey("name") || body.containsKey("surname"))
-				&& ((body.get("name") != null && !body.get("name").equalsIgnoreCase(""))
-						|| (body.get("surname") != null && !body.get("surname").equalsIgnoreCase("")))) {
+		if (accountId != null && isAccountId(accountId) && (body.containsKey("name") || body.containsKey("surname"))
+				&& (isName(body.get("name")) || isName(body.get("surname")))) {
 			String query = (body.containsKey("name"))
 					? "UPDATE Account SET Nome = '" + body.get("name") + "' WHERE ID = '" + accountId + "'"
 					: "UPDATE Account SET Cognome = '" + body.get("surname") + "' WHERE ID = '" + accountId + "'";
@@ -165,7 +168,7 @@ public class SistemaBancarioRest {
 
 	@RequestMapping(value = "/api/account/{accountId}", method = RequestMethod.HEAD)
 	public ResponseEntity<String> accountHead(@PathVariable String accountId) {
-		if (accountId != null && !accountId.equalsIgnoreCase("")) {
+		if (accountId != null && isAccountId(accountId)) {
 			String query = "SELECT Nome, Cognome FROM Account WHERE ID = '" + accountId + "'";
 			List<HashMap<String, String>> res = eseguiQuery(query);
 			if (res != null) {
@@ -181,9 +184,9 @@ public class SistemaBancarioRest {
 	public ResponseEntity<String> transferPost(@RequestBody String paramtransazione) {
 		Map<String, String> body = bodyParser(paramtransazione);
 		if (body != null && body.containsKey("from") && body.containsKey("to") && body.containsKey("amount")) {
-			if (Double.parseDouble(body.get("amount")) > 0) {
-				return addTransazione(body.get("from"), body.get("to"), body.get("amount"));
-			}
+			if (isAccountId(body.get("from")) && isAccountId(body.get("to")) && isNumber(body.get("amount")))
+				if (Double.parseDouble(body.get("amount")) > 0)
+					return addTransazione(body.get("from"), body.get("to"), body.get("amount"));
 		}
 		return new ResponseEntity<String>("Transazione non valida", HttpStatus.BAD_REQUEST);
 	}
@@ -191,7 +194,7 @@ public class SistemaBancarioRest {
 	@RequestMapping(value = "/api/divert", method = RequestMethod.POST)
 	public ResponseEntity<String> divertPost(@RequestBody String id) {
 		Map<String, String> body = bodyParser(id);
-		if (body != null && body.containsKey("id")) {
+		if (body != null && body.containsKey("id") && isUUID(body.get("id"))) {
 			String query = "SELECT amount, mittente, destinatario FROM Transazione WHERE ID = '" + body.get("id") + "'";
 			List<HashMap<String, String>> res = eseguiQuery(query);
 			return addTransazione(res.get(0).get("destinatario"), res.get(0).get("mittente"), res.get(0).get("amount"));
@@ -283,13 +286,36 @@ public class SistemaBancarioRest {
 			return 0;
 	}
 
-	private String controlloStringa(String s) {
-		if (s != null && !s.equalsIgnoreCase("")) {
-			s = s.replaceAll("[^\\w]+", " ");
-			s = s.replaceAll("[^A-Za-z0-9]+", "");
-			return s.trim();
+	private boolean isName(String s) {
+		if (s != null) {
+			Pattern p = Pattern.compile("([A-Za-z.]+\\s*)+");
+			return p.matcher(s).matches();
 		}
-		return "";
+		return false;
+	}
+
+	private boolean isUUID(String s) {
+		if (s != null) {
+			Pattern p = Pattern.compile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$");
+			return p.matcher(s).matches();
+		}
+		return false;
+	}
+
+	private boolean isAccountId(String s) {
+		if (s != null && s.length() == 20) {
+			Pattern p = Pattern.compile("([a-f]|[A-F]|[0-9])*$");
+			return p.matcher(s).matches();
+		}
+		return false;
+	}
+
+	private boolean isNumber(String s) {
+		if (s != null) {
+			Pattern p = Pattern.compile("^[-+]?\\d*\\.?\\d*$");
+			return p.matcher(s).matches();
+		}
+		return false;
 	}
 
 	private String creaID() {
